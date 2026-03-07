@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Menu, X, CheckCircle, Globe, Headset, ShieldCheck, 
-  Zap, Briefcase, Clock, Star, Mail, Instagram, Twitter, 
+import {
+  Menu, X, CheckCircle, Globe, Headset, ShieldCheck,
+  Zap, Briefcase, Clock, Star, Mail, Instagram, Twitter,
   Linkedin, ChevronRight, Quote, User, ExternalLink
 } from 'lucide-react';
-
+import { useNavigate, Routes, Route } from "react-router-dom";
+import SignupForm from './auth/SignUpFrom.jsx';
+import SigninForm from "./auth/SignInFrom.jsx";
+import DashBoard from "./pages/DashBoard.jsx";
 // --- Components ---
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -44,7 +48,9 @@ const Navbar = () => {
               {link.name}
             </a>
           ))}
-          <button className="px-6 py-2.5 rounded-full bg-white text-black font-semibold text-sm hover:bg-[#ff4da6] hover:text-white transition-all duration-300">
+          <button
+            onClick={() => navigate("/SignupForm")}
+            className="px-6 py-2.5 rounded-full bg-white text-black font-semibold text-sm hover:bg-[#ff4da6] hover:text-white transition-all duration-300">
             Get Started
           </button>
         </div>
@@ -58,7 +64,7 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
@@ -81,6 +87,7 @@ const Navbar = () => {
 
 const Hero = () => {
   const heroRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Using window.gsap loaded via script tag to avoid build errors
@@ -103,22 +110,22 @@ const Hero = () => {
 
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
         <div className="z-10">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }} 
-            animate={{ opacity: 1, x: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6"
           >
             <span className="w-2 h-2 rounded-full bg-[#ff4da6] animate-pulse" />
             <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Instant Activation Available</span>
           </motion.div>
-          
+
           <h1 className="hero-text-item text-5xl md:text-7xl font-bold leading-tight mb-6">
             Buy Virtual Numbers <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
               Instantly
             </span>
           </h1>
-          
+
           <p className="hero-text-item text-gray-400 text-lg md:text-xl mb-8 max-w-lg">
             Get secure, reliable, and instant virtual numbers for SMS verification, business accounts, and online platforms. 100+ countries supported.
           </p>
@@ -138,10 +145,10 @@ const Hero = () => {
           </div>
 
           <div className="hero-text-item flex flex-wrap gap-4">
-            <button className="px-8 py-4 rounded-full bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold hover:shadow-[0_0_20px_rgba(255,77,166,0.4)] transition-all transform hover:-translate-y-1">
+            <button onClick={() => navigate("/SignupForm")} className="px-8 py-4 rounded-full bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold hover:shadow-[0_0_20px_rgba(255,77,166,0.4)] transition-all transform hover:-translate-y-1">
               Get Your Number
             </button>
-            <button className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
+            <button onClick={() => navigate("/SignupForm")} className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
               View Pricing
             </button>
           </div>
@@ -149,7 +156,7 @@ const Hero = () => {
 
         {/* Hero Right: Mockup */}
         <div className="relative z-10 flex justify-center">
-          <motion.div 
+          <motion.div
             animate={{ y: [0, -20, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
             className="relative w-full max-w-[400px]"
@@ -192,7 +199,7 @@ const Hero = () => {
                   <span className="text-xs text-gray-400">$2.99/mo</span>
                 </div>
 
-                <button className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-[#ff4da6] hover:text-white transition-colors">
+                <button onClick={() => navigate("/SignupForm")} className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-[#ff4da6] hover:text-white transition-colors">
                   Buy Now
                 </button>
               </div>
@@ -209,6 +216,7 @@ const Hero = () => {
 
 const Services = () => {
   const sectionRef = useRef(null);
+  const navigate = useNavigate();
 
   const services = [
     { title: "100+ Countries", desc: "Access virtual numbers from over 100 countries worldwide.", icon: Globe },
@@ -245,7 +253,7 @@ const Services = () => {
 
         <div className="grid md:grid-cols-3 gap-8">
           {services.map((s, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               whileHover={{ y: -10 }}
               className="service-card group relative p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-[#ff4da6]/50 transition-all duration-500 overflow-hidden"
@@ -316,7 +324,7 @@ const Testimonials = () => {
               Don't just take our word for it. Join thousands of users who rely on Tofi Studio for their secure communication needs.
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4 bg-white/5 border border-white/10 p-4 rounded-2xl">
             <div className="text-center border-r border-white/10 pr-4">
               <div className="text-2xl font-bold text-white">4.9/5</div>
@@ -338,7 +346,7 @@ const Testimonials = () => {
               className="flex flex-col bg-[#111] border border-white/5 rounded-[2rem] p-8 relative group"
             >
               <Quote className="absolute top-8 right-8 text-white/5 w-12 h-12 group-hover:text-[#ff4da6]/10 transition-colors" />
-              
+
               <div className="flex gap-1 mb-6">
                 {[...Array(t.rating)].map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-[#ff4da6] text-[#ff4da6]" />
@@ -371,11 +379,11 @@ const Testimonials = () => {
         </div>
 
         <div className="mt-16 flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-           {/* Placeholder logos for visual depth/social proof */}
-           <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Globe className="w-5 h-5"/> FORBES</div>
-           <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Zap className="w-5 h-5"/> TECHCRUNCH</div>
-           <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><ShieldCheck className="w-5 h-5"/> WIRED</div>
-           <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Star className="w-5 h-5"/> TRUSTPILOT</div>
+          {/* Placeholder logos for visual depth/social proof */}
+          <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Globe className="w-5 h-5" /> FORBES</div>
+          <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Zap className="w-5 h-5" /> TECHCRUNCH</div>
+          <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> WIRED</div>
+          <div className="text-xl font-black tracking-tighter text-white flex items-center gap-2"><Star className="w-5 h-5" /> TRUSTPILOT</div>
         </div>
       </div>
     </section>
@@ -383,14 +391,15 @@ const Testimonials = () => {
 };
 
 const CTA = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-24 px-6">
       <div className="max-w-6xl mx-auto relative group overflow-hidden rounded-[3rem] p-12 md:p-24 text-center">
         <div className="absolute inset-0 bg-[#0d0d0d] z-0" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#ff4da6]/20 to-[#9d4edd]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-0" />
-        
+
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#9d4edd]/20 blur-[120px] z-0" />
-        
+
         <div className="relative z-10">
           <h2 className="text-5xl md:text-7xl font-black mb-6 tracking-tight">
             Need a Virtual Number?
@@ -398,20 +407,20 @@ const CTA = () => {
           <p className="text-xl text-gray-400 mb-10 max-w-xl mx-auto">
             Sign up now and get instant access to our worldwide network of secure numbers.
           </p>
-          <button className="px-12 py-5 rounded-full bg-white text-black font-black text-lg hover:scale-105 transition-transform">
+          <button onClick={() => navigate("/SignupForm")} className="px-12 py-5 rounded-full bg-white text-black font-black text-lg hover:scale-105 transition-transform">
             Create Account
           </button>
         </div>
 
-        <motion.div 
+        <motion.div
           animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
           transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-10 right-10 w-20 h-20 bg-[#ff4da6]/10 blur-xl rounded-full" 
+          className="absolute top-10 right-10 w-20 h-20 bg-[#ff4da6]/10 blur-xl rounded-full"
         />
-        <motion.div 
+        <motion.div
           animate={{ x: [0, -40, 0], y: [0, -20, 0] }}
           transition={{ duration: 6, repeat: Infinity }}
-          className="absolute bottom-10 left-10 w-32 h-32 bg-[#9d4edd]/10 blur-2xl rounded-full" 
+          className="absolute bottom-10 left-10 w-32 h-32 bg-[#9d4edd]/10 blur-2xl rounded-full"
         />
       </div>
     </section>
@@ -488,10 +497,10 @@ export default function App() {
     // Add GSAP via CDN to avoid build resolution errors
     const gsapScript = document.createElement('script');
     gsapScript.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-    
+
     const triggerScript = document.createElement('script');
     triggerScript.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js";
-    
+
     gsapScript.onload = () => {
       document.head.appendChild(triggerScript);
       triggerScript.onload = () => {
@@ -499,7 +508,7 @@ export default function App() {
         setLibsReady(true);
       };
     };
-    
+
     document.head.appendChild(gsapScript);
     document.documentElement.style.scrollBehavior = 'smooth';
 
@@ -509,13 +518,20 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white selection:bg-[#ff4da6] selection:text-white">
-      <Navbar />
-      <Hero />
-      <Services />
-      <Testimonials />
-      <CTA />
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={
+        <div className="min-h-screen bg-[#0d0d0d] text-white selection:bg-[#ff4da6] selection:text-white">
+          <Navbar />
+          <Hero />
+          <Services />
+          <Testimonials />
+          <CTA />
+          <Footer />
+        </div>
+      } />
+      <Route path="/SignupForm" element={<SignupForm />} />
+      <Route path="/signin" element={<SigninForm />} />
+      <Route path="/dashboard" element={<DashBoard />} />
+    </Routes>
   );
 }
