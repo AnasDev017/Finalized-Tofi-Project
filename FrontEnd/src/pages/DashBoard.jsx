@@ -104,6 +104,111 @@ const PageWrapper = ({ children, className = "" }) => {
 
 // --- Components ---
 
+// --- CSS keyframes injected once for card glow pulse ---
+const CardGlowStyles = () => (
+    <style>{`
+        @keyframes cardGlowPulse {
+            0%   { opacity: 0; }
+            50%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        @keyframes cardBorderPulse {
+            0%   { box-shadow: 0 0 0px rgba(255,77,166,0); border-color: rgba(255,255,255,0.1); transform: translateY(0px); }
+            50%  { box-shadow: 0 0 25px rgba(255,77,166,0.18); border-color: rgba(255,77,166,0.5); transform: translateY(-4px); }
+            100% { box-shadow: 0 0 0px rgba(255,77,166,0); border-color: rgba(255,255,255,0.1); transform: translateY(0px); }
+        }
+        .card-glow-pulse {
+            animation: cardBorderPulse 6s ease-in-out infinite;
+            will-change: box-shadow, border-color, transform;
+        }
+        .card-glow-overlay {
+            animation: cardGlowPulse 6s ease-in-out infinite;
+            will-change: opacity;
+        }
+        .btn-get-number {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .btn-get-number:hover,
+        .btn-get-number:active {
+            background: linear-gradient(to right, #ff4da6, #9d4edd) !important;
+            border-color: transparent !important;
+        }
+    `}</style>
+);
+
+// Number card with CSS-animated glow + mobile-friendly button
+const NumberCard = ({ num, navigate }) => {
+    const [btnPressed, setBtnPressed] = useState(false);
+
+    const handleTouchStart = (e) => {
+        e.preventDefault(); // stop ghost click
+        setBtnPressed(true);
+        setTimeout(() => {
+            navigate('confirm-order', { number: num });
+        }, 150); // small delay so gradient flash is visible
+    };
+
+    return (
+        <div className="card-glow-pulse relative overflow-hidden bg-[#111] border rounded-2xl p-5 flex flex-col h-full shadow-lg">
+            {/* CSS-animated pink glow overlay */}
+            <div className="card-glow-overlay absolute inset-0 pointer-events-none rounded-2xl"
+                style={{ background: 'linear-gradient(135deg, rgba(255,77,166,0.07) 0%, rgba(157,78,221,0.07) 100%)' }}
+            />
+
+            <div className="flex justify-between items-center mb-6 relative z-10">
+                <div className="flex items-center gap-2.5 bg-black/50 pr-3 pl-2 py-1.5 rounded-full border border-white/5 shadow-sm">
+                    <img src={num.flagUrl} alt={num.countryName} className="w-5 h-auto rounded-[2px]" />
+                    <span className="text-xs font-semibold text-gray-300">{num.countryName}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </div>
+                    <span className="text-[10px] uppercase font-extrabold text-green-500 tracking-wider">Active</span>
+                </div>
+            </div>
+
+            {/* Dual-layer text: white base + pink overlay cross-fades smoothly via opacity */}
+            <div className="flex-grow flex items-center justify-center py-4 relative z-10">
+                <div className="relative">
+                    {/* Layer 1: white→gray base (always visible) */}
+                    <h3 className="text-xl sm:text-2xl lg:text-[1.35rem] xl:text-2xl font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                        {num.number}
+                    </h3>
+                    {/* Layer 2: pink→purple overlay — fades in/out via opacity (GPU smooth) */}
+                    <h3 className="card-glow-overlay absolute inset-0 text-xl sm:text-2xl lg:text-[1.35rem] xl:text-2xl font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
+                        {num.number}
+                    </h3>
+                </div>
+            </div>
+
+            <div className="pt-5 mt-auto border-t border-white/5 flex items-center justify-between relative z-10">
+                <div>
+                    <span className="text-[10px] text-gray-500 block uppercase font-bold tracking-widest mb-0.5">Price</span>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-bold text-white">${num.price}</span>
+                        <span className="text-xs text-gray-500 font-medium">/mo</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => navigate('confirm-order', { number: num })}
+                    onTouchStart={handleTouchStart}
+                    className="btn-get-number border text-white px-5 py-2.5 rounded-xl text-sm font-bold"
+                    style={btnPressed ? {
+                        background: 'linear-gradient(to right, #ff4da6, #9d4edd)',
+                        borderColor: 'transparent'
+                    } : {}}
+                >
+                    Get Number
+                </button>
+            </div>
+        </div>
+    );
+};
+
 // 1. Virtual Numbers Page
 const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
     const [search, setSearch] = useState('');
@@ -124,6 +229,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
 
     return (
         <PageWrapper>
+            <CardGlowStyles />
             <div className="mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Available Virtual Numbers</h1>
                 <p className="text-gray-400">Select a country and choose a virtual number to activate instantly.</p>
@@ -164,46 +270,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredNumbers.map((num) => (
-                    <div
-                        key={num.id}
-                        className="relative overflow-hidden bg-[#111] border border-white/10 rounded-2xl p-5 hover:border-[#ff4da6]/50 transition-all duration-300 group flex flex-col h-full shadow-lg hover:shadow-[0_0_25px_rgba(255,77,166,0.15)] hover:-translate-y-1 will-change-transform"
-                    >
-                        <div className="flex justify-between items-center mb-6 relative z-10">
-                            <div className="flex items-center gap-2.5 bg-black/50 pr-3 pl-2 py-1.5 rounded-full border border-white/5 shadow-sm">
-                                <img src={num.flagUrl} alt={num.countryName} className="w-5 h-auto rounded-[2px]" />
-                                <span className="text-xs font-semibold text-gray-300">{num.countryName}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <div className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </div>
-                                <span className="text-[10px] uppercase font-extrabold text-green-500 tracking-wider">Active</span>
-                            </div>
-                        </div>
-
-                        <div className="flex-grow flex items-center justify-center py-4 relative z-10">
-                            <h3 className="text-xl sm:text-2xl lg:text-[1.35rem] xl:text-2xl font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 group-hover:from-[#ff4da6] group-hover:to-[#9d4edd] transition-all duration-300">
-                                {num.number}
-                            </h3>
-                        </div>
-
-                        <div className="pt-5 mt-auto border-t border-white/5 flex items-center justify-between relative z-10">
-                            <div>
-                                <span className="text-[10px] text-gray-500 block uppercase font-bold tracking-widest mb-0.5">Price</span>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-lg font-bold text-white">${num.price}</span>
-                                    <span className="text-xs text-gray-500 font-medium">/mo</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => navigate('confirm-order', { number: num })}
-                                className="bg-white/5 hover:bg-gradient-to-r hover:from-[#ff4da6] hover:to-[#9d4edd] border border-white/10 hover:border-transparent text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300"
-                            >
-                                Get Number
-                            </button>
-                        </div>
-                    </div>
+                    <NumberCard key={num.id} num={num} navigate={navigate} />
                 ))}
             </div>
             {filteredNumbers.length === 0 && (

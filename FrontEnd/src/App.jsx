@@ -9,6 +9,7 @@ import { useNavigate, Routes, Route } from "react-router-dom";
 import SignupForm from './auth/SignUpFrom.jsx';
 import SigninForm from "./auth/SignInFrom.jsx";
 import DashBoard from "./pages/DashBoard.jsx";
+import Admin from "./pages/Admin.jsx";
 // --- Components ---
 
 const Navbar = () => {
@@ -532,6 +533,7 @@ export default function App() {
       <Route path="/SignupForm" element={<SignupForm />} />
       <Route path="/signin" element={<SigninForm />} />
       <Route path="/dashboard" element={<DashBoard />} />
+      <Route path="/admin" element={<Admin />} />
     </Routes>
   );
 }
