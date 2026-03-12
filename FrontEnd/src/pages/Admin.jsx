@@ -422,7 +422,7 @@ export default function Admin() {
 
     const handleLogin = (e) => {
         e.preventDefault();
-        if (email === 'admin@gmail.com' && password === 'admin0lg0') {
+        if (email === 'tofiwork2@gmail.com' && password === 'Tofi289') {
             setIsLoggedIn(true);
             setError('');
         } else {
@@ -470,7 +470,7 @@ export default function Admin() {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="admin@gmail.com"
+                                placeholder="tofiwork2@gmail.com"
                                 className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all font-medium"
                             />
                         </div>
