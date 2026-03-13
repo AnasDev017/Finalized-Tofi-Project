@@ -4,7 +4,7 @@ import {
     Hash, Globe, ShoppingBag, LifeBuoy, User as UserIcon,
     Search, Filter, ChevronRight, Menu, X, CheckCircle,
     Clock, XCircle, Upload, Copy, ShieldCheck, CreditCard,
-    LogOut, Edit3, ArrowLeft, Check
+    LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap
 } from 'lucide-react';
 
 // --- External Libraries Loader ---
@@ -64,6 +64,31 @@ const generateMockNumbers = () => {
 };
 
 const MOCK_NUMBERS = generateMockNumbers();
+
+// --- OTP Services Mock Data ---
+const MOCK_OTP_SERVICES = [
+    { id: 1, name: 'Instagram', slug: 'instagram', bgGradient: 'radial-gradient(circle at 30% 110%, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', number: '+44 755 482 991', price: 320 },
+    { id: 2, name: 'Facebook', slug: 'facebook', bgGradient: 'linear-gradient(135deg, #1877F2, #0a5dc2)', number: '+1 202 555 0182', price: 280 },
+    { id: 3, name: 'TikTok', slug: 'tiktok', bgGradient: 'linear-gradient(135deg, #010101, #69C9D0)', number: '+44 755 991 221', price: 350 },
+    { id: 4, name: 'Gmail', slug: 'gmail', bgGradient: 'linear-gradient(135deg, #EA4335, #c1392b)', number: '+1 202 555 6612', price: 300 },
+    { id: 5, name: 'Telegram', slug: 'telegram', bgGradient: 'linear-gradient(135deg, #2AABEE, #229ED9)', number: '+61 555 7741', price: 260 },
+    { id: 6, name: 'WhatsApp', slug: 'whatsapp', bgGradient: 'linear-gradient(135deg, #25D366, #128C7E)', number: '+49 555 3871', price: 290 },
+    { id: 7, name: 'VK', slug: 'vk', bgGradient: 'linear-gradient(135deg, #4C75A3, #2a5080)', number: '+7 999 555 1234', price: 240 },
+    { id: 8, name: 'Discord', slug: 'discord', bgGradient: 'linear-gradient(135deg, #5865F2, #3c4dc9)', number: '+1 202 555 9988', price: 240 },
+    { id: 9, name: 'Amazon', slug: 'amazon', bgGradient: 'linear-gradient(135deg, #232F3E, #FF9900)', number: '+44 755 441 129', price: 390 },
+    { id: 10, name: 'Netflix', slug: 'netflix', bgGradient: 'linear-gradient(135deg, #E50914, #8b0000)', number: '+1 202 555 3391', price: 420 },
+    { id: 11, name: 'Uber', slug: 'uber', bgGradient: 'linear-gradient(135deg, #1a1a1a, #000000)', number: '+44 755 882 341', price: 310 },
+    { id: 12, name: 'Foodpanda', slug: 'foodpanda', bgGradient: 'linear-gradient(135deg, #D70F64, #a00a49)', number: '+92 321 555 7744', price: 200 },
+    { id: 13, name: 'Daraz', slug: 'daraz', bgGradient: 'linear-gradient(135deg, #F57224, #c75600)', number: '+92 300 555 2219', price: 210 },
+    { id: 14, name: 'Twitter/X', slug: 'x', bgGradient: 'linear-gradient(135deg, #14171A, #333)', number: '+1 202 555 5521', price: 330 },
+];
+
+// --- Active Numbers Mock Data ---
+const MOCK_ACTIVE_NUMBERS = [
+    { id: 1, number: '+44 755 482 991', country: 'United Kingdom', flagUrl: 'https://flagcdn.com/w40/gb.png', service: 'Telegram', orderId: 'ORD-7821', status: 'Active', otp: null },
+    { id: 2, number: '+1 202 555 0182', country: 'United States', flagUrl: 'https://flagcdn.com/w40/us.png', service: 'Instagram', orderId: 'ORD-7810', status: 'Active', otp: '948271' },
+    { id: 3, number: '+61 555 7741', country: 'Australia', flagUrl: 'https://flagcdn.com/w40/au.png', service: 'WhatsApp', orderId: 'ORD-7798', status: 'Active', otp: null },
+];
 
 const MOCK_ORDERS = [
     { id: 'ORD-7782A', number: '+1 555 4921', country: 'United States', price: '$4.99', date: '2026-03-07', method: 'Easypaisa', status: 'Approved' },
@@ -283,6 +308,9 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
     );
 };
 
+// Starting prices for the first 2 countries
+const COUNTRY_STARTING_PRICES = { us: 300, gb: 350 };
+
 // 2. Countries Page
 const Countries = ({ navigate }) => {
     return (
@@ -308,6 +336,11 @@ const Countries = ({ navigate }) => {
                             <div>
                                 <h3 className="text-white font-bold text-[1.05rem]">{country.name}</h3>
                                 <p className="text-xs text-gray-400 mt-0.5">{country.available} numbers available</p>
+                                {COUNTRY_STARTING_PRICES[country.id] && (
+                                    <p className="text-[10px] text-[#9d4edd] mt-0.5 font-semibold">
+                                        Starting from PKR {COUNTRY_STARTING_PRICES[country.id]}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[#9d4edd] transition-colors relative z-10" />
@@ -691,6 +724,217 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
     );
 };
 
+// 7. Get OTP's Page
+const GetOTPs = ({ navigate }) => {
+    return (
+        <PageWrapper>
+            <CardGlowStyles />
+            <div className="mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Get OTP's</h1>
+                <p className="text-gray-400">Purchase OTP verification numbers for your favourite platforms — instant activation.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {MOCK_OTP_SERVICES.map((service) => (
+                    <div
+                        key={service.id}
+                        className="card-glow-pulse relative overflow-hidden bg-[#111] border rounded-2xl flex flex-col shadow-lg"
+                    >
+                        {/* CSS-animated pink glow overlay */}
+                        <div
+                            className="card-glow-overlay absolute inset-0 pointer-events-none rounded-2xl"
+                            style={{ background: 'linear-gradient(135deg, rgba(255,77,166,0.07) 0%, rgba(157,78,221,0.07) 100%)' }}
+                        />
+
+                        {/* ── TOP ROW: logo left / badge right ── */}
+                        <div className="p-5 pb-3 flex items-start justify-between relative z-10">
+                            <div
+                                className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0 overflow-hidden"
+                                style={{ background: service.bgGradient }}
+                            >
+                                <img
+                                    src={`https://cdn.simpleicons.org/${service.slug}/ffffff`}
+                                    alt={service.name}
+                                    className="w-6 h-6 object-contain"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentNode.querySelector('span').style.display = 'block';
+                                    }}
+                                />
+                                <span className="text-white font-extrabold text-base hidden">{service.name[0]}</span>
+                            </div>
+                            <div className="bg-white/[0.06] border border-white/[0.09] rounded-lg px-3 py-1">
+                                <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">{service.name}</span>
+                            </div>
+                        </div>
+
+                        {/* ── CENTER: dual-layer number (same as NumberCard) ── */}
+                        <div className="px-5 pt-4 pb-4 text-center flex-1 flex flex-col items-center justify-center relative z-10">
+                            <div className="relative">
+                                {/* Layer 1: white base (always visible) */}
+                                <p className="text-[1.35rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                    {service.number}
+                                </p>
+                                {/* Layer 2: pink overlay — fades in/out */}
+                                <p className="card-glow-overlay absolute inset-0 text-[1.35rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
+                                    {service.number}
+                                </p>
+                            </div>
+                            <p className="text-[10px] uppercase tracking-[0.25em] text-gray-600 font-bold mt-2">Virtual Number</p>
+                        </div>
+
+                        {/* ── DIVIDER ── */}
+                        <div className="mx-5 h-px bg-white/[0.05] relative z-10" />
+
+                        {/* ── BOTTOM: price + CTA ── */}
+                        <div className="p-5 flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-0.5">Price</p>
+                                <p className="text-xl font-extrabold text-white">PKR {service.price}</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('confirm-order', { number: { number: service.number, price: service.price, countryName: service.name, flagUrl: null } })}
+                                className="btn-get-number border text-white px-5 py-2.5 rounded-xl text-sm font-bold"
+                            >
+                                Get OTP
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </PageWrapper>
+    );
+};
+
+// 8. My Active Numbers Page
+const MyActiveNumbers = () => {
+    const [copiedOtp, setCopiedOtp] = useState(null);
+
+    const handleCopyOtp = (id, otp) => {
+        navigator.clipboard.writeText(otp);
+        setCopiedOtp(id);
+        setTimeout(() => setCopiedOtp(null), 2000);
+    };
+
+    return (
+        <PageWrapper>
+            <CardGlowStyles />
+            <div className="mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">My Active Numbers</h1>
+                <p className="text-gray-400">Numbers approved by admin appear here with incoming OTP codes.</p>
+            </div>
+
+            {MOCK_ACTIVE_NUMBERS.length === 0 ? (
+                <div className="text-center py-20 text-gray-500">
+                    <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                    <p>No active numbers yet. Purchase a number to get started.</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {MOCK_ACTIVE_NUMBERS.map((item, idx) => (
+                        <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.08 }}
+                            className="card-glow-pulse relative overflow-hidden bg-[#111] border rounded-2xl p-6 shadow-lg flex flex-col"
+                        >
+                            {/* CSS-animated pink glow overlay */}
+                            <div
+                                className="card-glow-overlay absolute inset-0 pointer-events-none rounded-2xl"
+                                style={{ background: 'linear-gradient(135deg, rgba(255,77,166,0.07) 0%, rgba(157,78,221,0.07) 100%)' }}
+                            />
+
+                            {/* ── ROW 1: Country pill + ACTIVE badge ── */}
+                            <div className="flex items-center justify-between mb-6 relative z-10">
+                                <div className="flex items-center gap-2 bg-white/[0.09] border border-white/[0.09] rounded-full pl-1.5 pr-3 py-1.5">
+                                    {item.flagUrl && (
+                                        <img src={item.flagUrl} alt={item.country} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                                    )}
+                                    <span className="text-white font-bold text-sm">{item.country}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </div>
+                                    <span className="text-xs font-extrabold text-green-400 uppercase tracking-widest">Active</span>
+                                </div>
+                            </div>
+
+                            {/* ── ROW 2: NUMBER (dual-layer) ── */}
+                            <div className="mb-5 relative z-10">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-bold mb-2">Number</p>
+                                <div className="relative">
+                                    {/* Layer 1: white base */}
+                                    <p className="text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                                        {item.number}
+                                    </p>
+                                    {/* Layer 2: pink overlay — fades in/out like NumberCard */}
+                                    <p className="card-glow-overlay absolute inset-0 text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
+                                        {item.number}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* ── ROW 3: SERVICE | ORDER ID ── */}
+                            <div className="grid grid-cols-2 gap-5 mb-6 relative z-10">
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Service</p>
+                                    <p className="text-white font-bold text-sm">{item.service}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Order ID</p>
+                                    <p className="text-gray-300 font-mono text-sm">#{item.orderId.replace('ORD-', '')}</p>
+                                </div>
+                            </div>
+
+                            {/* ── ROW 4: OTP CODE ── */}
+                            <div className="relative z-10 mt-auto">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-bold mb-2">OTP Code</p>
+                                <AnimatePresence mode="wait">
+                                    {item.otp ? (
+                                        <motion.div
+                                            key="otp-received"
+                                            initial={{ opacity: 0, scale: 0.96 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="flex items-center justify-between bg-[#2a0a14] border border-[#ff4da6]/25 rounded-xl px-4 py-3.5"
+                                        >
+                                            <span className="text-[1.5rem] font-mono font-bold text-white tracking-[0.4em]">
+                                                {item.otp.split('').join(' ')}
+                                            </span>
+                                            <button
+                                                onClick={() => handleCopyOtp(item.id, item.otp)}
+                                                className="ml-3 p-2 text-[#ff4da6]/70 hover:text-[#ff4da6] hover:bg-[#ff4da6]/10 rounded-lg transition-all shrink-0"
+                                            >
+                                                {copiedOtp === item.id
+                                                    ? <Check className="w-4 h-4 text-green-400" />
+                                                    : <Copy className="w-4 h-4" />}
+                                            </button>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div
+                                            key="otp-waiting"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="flex items-center gap-2.5 bg-black/50 border border-white/5 rounded-xl px-4 py-3.5"
+                                        >
+                                            <Clock className="w-4 h-4 text-gray-600 shrink-0" />
+                                            <p className="text-gray-600 text-sm font-medium">Waiting for OTP...</p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+        </PageWrapper>
+    );
+};
+
 // --- Layout & Main App ---
 
 export default function App() {
@@ -711,6 +955,8 @@ export default function App() {
         { id: 'numbers', label: 'Virtual Numbers', icon: Hash },
         { id: 'countries', label: 'Countries', icon: Globe },
         { id: 'orders', label: 'My Orders', icon: ShoppingBag },
+        { id: 'otp', label: "Get OTP's", icon: ShieldCheck },
+        { id: 'active', label: 'My Numbers', icon: Smartphone },
         { id: 'support', label: 'Support', icon: LifeBuoy },
         { id: 'account', label: 'Account', icon: UserIcon },
     ];
@@ -839,6 +1085,8 @@ export default function App() {
                     {currentPath === 'support' && <Support />}
                     {currentPath === 'account' && <Account />}
                     {currentPath === 'confirm-order' && <ConfirmOrder navigate={navigate} selectedData={routeData} />}
+                    {currentPath === 'otp' && <GetOTPs navigate={navigate} />}
+                    {currentPath === 'active' && <MyActiveNumbers />}
                 </div>
             </main>
         </div>
