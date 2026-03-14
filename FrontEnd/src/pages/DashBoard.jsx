@@ -267,7 +267,10 @@ const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) =>
             {filteredNumbers.length === 0 && (
                 <div className="text-center py-20 text-gray-500">
                     <Filter className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No numbers found matching your criteria.</p>
+                    <p>No numbers found matching your criteria.
+                        <br />
+                        (You can request your number through our WhatsApp support!)
+                        </p>
                 </div>
             )}
         </PageWrapper>
