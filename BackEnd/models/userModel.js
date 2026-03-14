@@ -20,7 +20,13 @@ const userSchema = new mongoose.Schema(
       type: String, 
       required: [true, "Password is required"], 
       minlength: [6, "Password must be at least 6 characters"] 
+    },
+    orders: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order"
     }
+  ],
   },
   { timestamps: true }
 );

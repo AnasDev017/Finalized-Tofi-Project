@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Hash, Globe, ShoppingBag, CreditCard, Ticket,
     Menu, X, Trash2, CheckCircle, Plus, Search,
-    Settings, LogOut, MessageSquare
+    Settings, LogOut, MessageSquare, Loader2
 } from 'lucide-react';
+import axios from 'axios';
+import API_BASE_URL from '../api/baseUrl.js';
+import Swal from 'sweetalert2';
 
 // --- Initial Mock Data ---
 const INITIAL_NUMBERS = [
@@ -15,9 +18,9 @@ const INITIAL_NUMBERS = [
 ];
 
 const INITIAL_COUNTRIES = [
-    { id: 1, name: 'United States', activeNumbers: 120, status: 'Active' },
-    { id: 2, name: 'United Kingdom', activeNumbers: 80, status: 'Active' },
-    { id: 3, name: 'Canada', activeNumbers: 65, status: 'Active' },
+    { id: 1, name: 'United States', code: 'US', activeNumbers: 120, price: 3.00, status: 'Active' },
+    { id: 2, name: 'United Kingdom', code: 'GB', activeNumbers: 80, price: 5.50, status: 'Active' },
+    { id: 3, name: 'Canada', code: 'CA', activeNumbers: 65, price: 2.50, status: 'Active' },
 ];
 
 const INITIAL_ORDERS = [
@@ -64,16 +67,56 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
         if (!formData.number || !formData.country || !formData.price) return;
         const newNum = {
             id: Date.now(),
-            number: formData.number,
+            number: formData.number.trim(),
             country: formData.country,
             price: parseFloat(formData.price),
             status: 'Available'
         };
         setNumbers([newNum, ...numbers]);
         setFormData({ number: '', country: '', price: '' });
+        Swal.fire({
+            title: 'Number Added!',
+            text: 'Virtual number is now available.',
+            icon: 'success',
+            background: '#111',
+            color: '#fff',
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+        });
     };
 
-    const handleDelete = (id) => setNumbers(numbers.filter(n => n.id !== id));
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Remove Number?',
+            text: "This virtual number will be deleted.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4da6',
+            cancelButtonColor: '#333',
+            confirmButtonText: 'Yes, delete',
+            background: '#111',
+            color: '#fff',
+            customClass: {
+                popup: 'rounded-2xl border border-white/10 shadow-2xl',
+                confirmButton: 'rounded-xl px-6 py-2',
+                cancelButton: 'rounded-xl px-6 py-2'
+            }
+        });
+
+        if (result.isConfirmed) {
+            setNumbers(numbers.filter(n => n.id !== id));
+            Swal.fire({
+                title: 'Deleted!',
+                icon: 'success',
+                background: '#111',
+                color: '#fff',
+                timer: 1000,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+        }
+    };
 
     return (
         <PageWrapper title="Virtual Numbers Management" description="Add and manage all available virtual numbers.">
@@ -95,7 +138,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Price ($)</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Price (Rs)</label>
                                 <input type="number" step="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} placeholder="3.00" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
                             </div>
                             <button type="submit" className="w-full bg-[#ff4da6] hover:bg-[#ff4da6]/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#ff4da6]/20 mt-2">
@@ -123,7 +166,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                     <tr key={num.id} className="hover:bg-white/5 transition-colors">
                                         <td className="p-5 font-mono text-sm font-bold text-white">{num.number}</td>
                                         <td className="p-5 text-sm text-gray-300">{num.country}</td>
-                                        <td className="p-5 text-sm text-gray-300">${num.price.toFixed(2)}</td>
+                                        <td className="p-5 text-sm text-gray-300">Rs{num.price.toFixed(2)}</td>
                                         <td className="p-5">
                                             <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${num.status === 'Available' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                                 {num.status}
@@ -149,17 +192,104 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
 };
 
 const CountriesView = ({ countries, setCountries }) => {
-    const [formData, setFormData] = useState({ name: '', activeNumbers: '' });
+    const [formData, setFormData] = useState({ name: '', code: '', activeNumbers: '', price: '' });
+    const [loading, setLoading] = useState(false);
 
-    const handleAdd = (e) => {
+    const handleAdd = async (e) => {
         e.preventDefault();
-        if (!formData.name || !formData.activeNumbers) return;
-        const newCountry = { id: Date.now(), name: formData.name, activeNumbers: parseInt(formData.activeNumbers), status: 'Active' };
-        setCountries([newCountry, ...countries]);
-        setFormData({ name: '', activeNumbers: '' });
+        if (!formData.name || !formData.code || !formData.activeNumbers || !formData.price) return;
+
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_BASE_URL}/countries/addCountry`, {
+                name: formData.name.trim(),
+                code: formData.code.trim(),
+                activeNumbers: parseInt(formData.activeNumbers),
+                price: parseFloat(formData.price)
+            });
+
+            if (response.data.success) {
+                setCountries([response.data.country, ...countries]);
+                setFormData({ name: '', code: '', activeNumbers: '', price: '' });
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Country added successfully.',
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+                });
+            }
+        } catch (error) {
+            console.error("Error adding country:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: error.response?.data?.message || "Failed to add country",
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDelete = (id) => setCountries(countries.filter(c => c.id !== id));
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#9d4edd',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!',
+            background: '#111',
+            color: '#fff',
+            customClass: {
+                popup: 'rounded-2xl border border-white/10 shadow-2xl',
+                title: 'text-white font-bold',
+                htmlContainer: 'text-gray-400',
+                confirmButton: 'rounded-xl px-6 py-2',
+                cancelButton: 'rounded-xl px-6 py-2'
+            }
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await axios.delete(`${API_BASE_URL}/countries/deleteCountry/${id}`);
+                if (response.data.success) {
+                    setCountries(countries.filter(c => (c._id || c.id) !== id));
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: 'Country has been removed.',
+                        icon: 'success',
+                        background: '#111',
+                        color: '#fff',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        customClass: {
+                            popup: 'rounded-2xl border border-white/10 shadow-2xl'
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Error deleting country:", error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.response?.data?.message || 'Failed to delete country',
+                    icon: 'error',
+                    background: '#111',
+                    color: '#fff',
+                    customClass: {
+                        popup: 'rounded-2xl border border-white/10 shadow-2xl'
+                    }
+                });
+            }
+        }
+    };
 
     return (
         <PageWrapper title="Countries Management" description="Manage all countries where numbers are available.">
@@ -173,11 +303,23 @@ const CountriesView = ({ countries, setCountries }) => {
                                 <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Germany" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#9d4edd]/50 transition-all" />
                             </div>
                             <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Country Code</label>
+                                <input type="text" maxLength={3} value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} placeholder="e.g. +1" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#9d4edd]/50 transition-all uppercase" />
+                            </div>
+                            <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Active Numbers Quantity</label>
                                 <input type="number" value={formData.activeNumbers} onChange={e => setFormData({ ...formData, activeNumbers: e.target.value })} placeholder="0" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#9d4edd]/50 transition-all" />
                             </div>
-                            <button type="submit" className="w-full bg-[#9d4edd] hover:bg-[#9d4edd]/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#9d4edd]/20 mt-2">
-                                Add Country
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Price (Rs)</label>
+                                <input type="number" step="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} placeholder="3.00" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#9d4edd]/50 transition-all" />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-[#9d4edd] hover:bg-[#9d4edd]/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#9d4edd]/20 mt-2 flex items-center justify-center gap-2"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Add Country"}
                             </button>
                         </form>
                     </div>
@@ -188,28 +330,40 @@ const CountriesView = ({ countries, setCountries }) => {
                             <thead className="bg-black/40 border-b border-white/10">
                                 <tr>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Country</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Code</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Active Numbers</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {countries.map(country => (
-                                    <tr key={country.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="p-5 text-sm font-bold text-white">{country.name}</td>
+                                {countries.map((country, index) => (
+                                    <tr key={country._id || index} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-5 text-sm font-bold text-white">
+                                            <div className="flex items-center gap-3">
+                                                {country.flag && <img src={country.flag} alt={country.name} className="w-6 h-4 rounded-sm object-cover" />}
+                                                {country.name}
+                                            </div>
+                                        </td>
+                                        <td className="p-5 text-sm font-mono font-bold text-[#9d4edd]">{country.code ?? '—'}</td>
                                         <td className="p-5 text-sm text-gray-400">{country.activeNumbers} numbers</td>
+                                        <td className="p-5 text-sm text-gray-300">Rs{country.price?.toFixed(2) ?? '—'}</td>
                                         <td className="p-5">
                                             <span className="px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                                {country.status}
+                                                {country.status || 'Active'}
                                             </span>
                                         </td>
                                         <td className="p-5 text-right">
-                                            <button onClick={() => handleDelete(country.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
+                                            <button onClick={() => handleDelete(country._id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>
                                     </tr>
                                 ))}
+                                {countries.length === 0 && (
+                                    <tr><td colSpan="6" className="p-8 text-center text-gray-500">No countries found.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -261,7 +415,7 @@ const OrdersView = ({ orders, setOrders }) => {
                                         <div className="text-xs text-gray-500">{order.country}</div>
                                     </td>
                                     <td className="p-5">
-                                        <div className="text-sm font-bold text-white">${order.price.toFixed(2)}</div>
+                                        <div className="text-sm font-bold text-white">Rs{order.price.toFixed(2)}</div>
                                         <div className="text-[10px] text-gray-500 uppercase">{order.method}</div>
                                     </td>
                                     <td className="p-5 text-sm text-gray-400">{order.date}</td>
@@ -321,7 +475,7 @@ const PaymentsView = ({ payments }) => {
                                     <td className="p-5 text-sm font-mono font-bold text-gray-300">{payment.id}</td>
                                     <td className="p-5 text-sm text-white font-medium">{payment.name}</td>
                                     <td className="p-5 text-sm text-gray-400">{payment.method}</td>
-                                    <td className="p-5 text-sm font-bold text-white">${payment.amount.toFixed(2)}</td>
+                                    <td className="p-5 text-sm font-bold text-white">Rs{payment.amount.toFixed(2)}</td>
                                     <td className="p-5">
                                         <div className="text-sm font-mono text-gray-300">{payment.number}</div>
                                         <div className="text-[10px] text-gray-500 uppercase">{payment.orderId}</div>
@@ -344,10 +498,48 @@ const PaymentsView = ({ payments }) => {
 const TicketsView = ({ tickets, setTickets }) => {
     const handleResolve = (id) => {
         setTickets(tickets.map(t => t.id === id ? { ...t, status: 'Resolved' } : t));
+        Swal.fire({
+            title: 'Resolved!',
+            text: 'Ticket has been marked as resolved.',
+            icon: 'success',
+            background: '#111',
+            color: '#fff',
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+        });
     };
 
-    const handleDelete = (id) => {
-        setTickets(tickets.filter(t => t.id !== id));
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Delete Ticket?',
+            text: "This ticket will be permanently removed.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4da6',
+            cancelButtonColor: '#333',
+            confirmButtonText: 'Yes, delete',
+            background: '#111',
+            color: '#fff',
+            customClass: {
+                popup: 'rounded-2xl border border-white/10 shadow-2xl',
+                confirmButton: 'rounded-xl px-6 py-2',
+                cancelButton: 'rounded-xl px-6 py-2'
+            }
+        });
+
+        if (result.isConfirmed) {
+            setTickets(tickets.filter(t => t.id !== id));
+            Swal.fire({
+                title: 'Removed!',
+                icon: 'success',
+                background: '#111',
+                color: '#fff',
+                timer: 1000,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+        }
     };
 
     return (
@@ -410,15 +602,48 @@ export default function Admin() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const [currentPath, setCurrentPath] = useState('products');
+    const [currentPath, setCurrentPath] = useState('numbers');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    // Global Mock State
-    const [numbers, setNumbers] = useState(INITIAL_NUMBERS);
-    const [countries, setCountries] = useState(INITIAL_COUNTRIES);
+    // Global State
+    const [numbers, setNumbers] = useState([]);
+    const [countries, setCountries] = useState([]);
     const [orders, setOrders] = useState(INITIAL_ORDERS);
     const [payments, setPayments] = useState(INITIAL_PAYMENTS);
     const [tickets, setTickets] = useState(INITIAL_TICKETS);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch Data from Backend
+    React.useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [countriesRes, numbersRes] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/countries/getAllCountries`),
+                    axios.get(`${API_BASE_URL}/numbers/getAllNumbers`)
+                ]);
+
+                if (countriesRes.data.success) {
+                    setCountries(countriesRes.data.countries);
+                }
+                if (numbersRes.data.success) {
+                    setNumbers(numbersRes.data.numbers);
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                Swal.fire({
+                    title: 'Fetch Error',
+                    text: 'Unable to load data from server.',
+                    icon: 'error',
+                    background: '#111',
+                    color: '#fff',
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -436,7 +661,7 @@ export default function Admin() {
     };
 
     const navItems = [
-        { id: 'products', label: 'Products', icon: Hash },
+        { id: 'numbers', label: 'Numbers', icon: Hash },
         { id: 'countries', label: 'Countries', icon: Globe },
         { id: 'orders', label: 'Orders', icon: ShoppingBag },
         { id: 'payments', label: 'Payments', icon: CreditCard },
@@ -561,7 +786,7 @@ export default function Admin() {
                 {/* Scrollable Content Area */}
                 <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-10 lg:p-12 scroll-smooth">
                     <AnimatePresence mode="wait">
-                        {currentPath === 'products' && <ProductsView key="products" numbers={numbers} setNumbers={setNumbers} countries={countries} />}
+                        {currentPath === 'numbers' && <ProductsView key="numbers" numbers={numbers} setNumbers={setNumbers} countries={countries} />}
                         {currentPath === 'countries' && <CountriesView key="countries" countries={countries} setCountries={setCountries} />}
                         {currentPath === 'orders' && <OrdersView key="orders" orders={orders} setOrders={setOrders} />}
                         {currentPath === 'payments' && <PaymentsView key="payments" payments={payments} />}

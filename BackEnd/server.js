@@ -4,6 +4,8 @@ import connectDB from "./config/db.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
+import countryRoutes from "./routes/countryRoutes.js";
+import numberRoutes from "./routes/numberRoutes.js";
 
 configDotenv();
 
@@ -20,7 +22,8 @@ app.get("/", (req, res) => {
   res.json({ message: "Server is running!" });
 });
 
-app.use("/auth", authRoutes);
+app.use("/countries", countryRoutes);
+app.use("/numbers", numberRoutes);
 
 const PORT = process.env.PORT || 5000;
 
