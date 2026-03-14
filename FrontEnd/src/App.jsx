@@ -50,7 +50,7 @@ const Navbar = () => {
             </a>
           ))}
           <button
-            onClick={() => navigate("/SignupForm")}
+            onClick={() => navigate("/signup")}
             className="px-6 py-2.5 rounded-full bg-white text-black font-semibold text-sm hover:bg-[#ff4da6] hover:text-white transition-all duration-300">
             Get Started
           </button>
@@ -146,10 +146,10 @@ const Hero = () => {
           </div>
 
           <div className="hero-text-item flex flex-wrap gap-4">
-            <button onClick={() => navigate("/SignupForm")} className="px-8 py-4 rounded-full bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold hover:shadow-[0_0_20px_rgba(255,77,166,0.4)] transition-all transform hover:-translate-y-1">
+            <button onClick={() => navigate("/signup")} className="px-8 py-4 rounded-full bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold hover:shadow-[0_0_20px_rgba(255,77,166,0.4)] transition-all transform hover:-translate-y-1">
               Get Your Number
             </button>
-            <button onClick={() => navigate("/SignupForm")} className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
+            <button onClick={() => navigate("/signup")} className="px-8 py-4 rounded-full bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all">
               View Pricing
             </button>
           </div>
@@ -200,7 +200,7 @@ const Hero = () => {
                   <span className="text-xs text-gray-400">$2.99/mo</span>
                 </div>
 
-                <button onClick={() => navigate("/SignupForm")} className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-[#ff4da6] hover:text-white transition-colors">
+                <button onClick={() => navigate("/signup")} className="w-full py-4 rounded-xl bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-[#ff4da6] hover:text-white transition-colors">
                   Buy Now
                 </button>
               </div>
@@ -408,7 +408,7 @@ const CTA = () => {
           <p className="text-xl text-gray-400 mb-10 max-w-xl mx-auto">
             Sign up now and get instant access to our worldwide network of secure numbers.
           </p>
-          <button onClick={() => navigate("/SignupForm")} className="px-12 py-5 rounded-full bg-white text-black font-black text-lg hover:scale-105 transition-transform">
+          <button onClick={() => navigate("/signup")} className="px-12 py-5 rounded-full bg-white text-black font-black text-lg hover:scale-105 transition-transform">
             Create Account
           </button>
         </div>
@@ -530,7 +530,7 @@ export default function App() {
           <Footer />
         </div>
       } />
-      <Route path="/SignupForm" element={<SignupForm />} />
+      <Route path="/signup" element={<SignupForm />} />
       <Route path="/signin" element={<SigninForm />} />
       <Route path="/dashboard" element={<DashBoard />} />
       <Route path="/admin" element={<Admin />} />

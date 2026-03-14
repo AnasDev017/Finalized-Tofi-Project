@@ -4,8 +4,10 @@ import {
     Hash, Globe, ShoppingBag, LifeBuoy, User as UserIcon,
     Search, Filter, ChevronRight, Menu, X, CheckCircle,
     Clock, XCircle, Upload, Copy, ShieldCheck, CreditCard,
-    LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap
+    LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap, Loader2
 } from 'lucide-react';
+import axios from 'axios';
+import API_BASE_URL from '../api/baseUrl';
 
 // --- External Libraries Loader ---
 const useGSAPLoader = () => {
@@ -24,48 +26,6 @@ const useGSAPLoader = () => {
 };
 
 // --- Mock Data ---
-
-const MOCK_COUNTRIES = [
-    { id: 'us', name: 'United States', flagUrl: 'https://flagcdn.com/w40/us.png', available: 1240 },
-    { id: 'gb', name: 'United Kingdom', flagUrl: 'https://flagcdn.com/w40/gb.png', available: 850 },
-    { id: 'ca', name: 'Canada', flagUrl: 'https://flagcdn.com/w40/ca.png', available: 430 },
-    { id: 'au', name: 'Australia', flagUrl: 'https://flagcdn.com/w40/au.png', available: 320 },
-    { id: 'de', name: 'Germany', flagUrl: 'https://flagcdn.com/w40/de.png', available: 210 },
-    { id: 'fr', name: 'France', flagUrl: 'https://flagcdn.com/w40/fr.png', available: 180 },
-    { id: 'jp', name: 'Japan', flagUrl: 'https://flagcdn.com/w40/jp.png', available: 150 },
-    { id: 'br', name: 'Brazil', flagUrl: 'https://flagcdn.com/w40/br.png', available: 95 },
-    { id: 'in', name: 'India', flagUrl: 'https://flagcdn.com/w40/in.png', available: 500 },
-    { id: 'za', name: 'South Africa', flagUrl: 'https://flagcdn.com/w40/za.png', available: 75 },
-    { id: 'nl', name: 'Netherlands', flagUrl: 'https://flagcdn.com/w40/nl.png', available: 110 },
-    { id: 'se', name: 'Sweden', flagUrl: 'https://flagcdn.com/w40/se.png', available: 60 },
-    { id: 'ch', name: 'Switzerland', flagUrl: 'https://flagcdn.com/w40/ch.png', available: 45 },
-    { id: 'sg', name: 'Singapore', flagUrl: 'https://flagcdn.com/w40/sg.png', available: 85 },
-    { id: 'ae', name: 'UAE', flagUrl: 'https://flagcdn.com/w40/ae.png', available: 130 },
-];
-
-const generateMockNumbers = () => {
-    const numbers = [];
-    MOCK_COUNTRIES.forEach(country => {
-        for (let i = 0; i < 5; i++) {
-            const randomNum = Math.floor(Math.random() * 9000000) + 1000000;
-            let prefix = country.id === 'us' || country.id === 'ca' ? '+1' : country.id === 'gb' ? '+44' : country.id === 'au' ? '+61' : `+${Math.floor(Math.random() * 90 + 10)}`;
-            numbers.push({
-                id: `${country.id}-${i}`,
-                countryId: country.id,
-                countryName: country.name,
-                flagUrl: country.flagUrl,
-                number: `${prefix} 555 ${randomNum.toString().substring(0, 4)}`,
-                price: (Math.random() * 10 + 2).toFixed(2),
-                status: 'Active'
-            });
-        }
-    });
-    return numbers.sort(() => Math.random() - 0.5); // Shuffle
-};
-
-const MOCK_NUMBERS = generateMockNumbers();
-
-// --- OTP Services Mock Data ---
 const MOCK_OTP_SERVICES = [
     { id: 1, name: 'Instagram', slug: 'instagram', bgGradient: 'radial-gradient(circle at 30% 110%, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', number: '+44 755 482 991', price: 320 },
     { id: 2, name: 'Facebook', slug: 'facebook', bgGradient: 'linear-gradient(135deg, #1877F2, #0a5dc2)', number: '+1 202 555 0182', price: 280 },
@@ -83,7 +43,6 @@ const MOCK_OTP_SERVICES = [
     { id: 14, name: 'Twitter/X', slug: 'x', bgGradient: 'linear-gradient(135deg, #14171A, #333)', number: '+1 202 555 5521', price: 330 },
 ];
 
-// --- Active Numbers Mock Data ---
 const MOCK_ACTIVE_NUMBERS = [
     { id: 1, number: '+44 755 482 991', country: 'United Kingdom', flagUrl: 'https://flagcdn.com/w40/gb.png', service: 'Telegram', orderId: 'ORD-7821', status: 'Active', otp: null },
     { id: 2, number: '+1 202 555 0182', country: 'United States', flagUrl: 'https://flagcdn.com/w40/us.png', service: 'Instagram', orderId: 'ORD-7810', status: 'Active', otp: '948271' },
@@ -91,11 +50,11 @@ const MOCK_ACTIVE_NUMBERS = [
 ];
 
 const MOCK_ORDERS = [
-    { id: 'ORD-7782A', number: '+1 555 4921', country: 'United States', price: '$4.99', date: '2026-03-07', method: 'Easypaisa', status: 'Approved' },
-    { id: 'ORD-7781B', number: '+44 555 8812', country: 'United Kingdom', price: '$6.50', date: '2026-03-05', method: 'JazzCash', status: 'Pending' },
-    { id: 'ORD-7775C', number: '+1 555 1198', country: 'Canada', price: '$3.99', date: '2026-03-01', method: 'Easypaisa', status: 'Approved' },
-    { id: 'ORD-7760D', number: '+61 555 3321', country: 'Australia', price: '$8.00', date: '2026-02-28', method: 'Crypto', status: 'Rejected' },
-    { id: 'ORD-7751E', number: '+49 555 7744', country: 'Germany', price: '$5.50', date: '2026-02-15', method: 'JazzCash', status: 'Approved' },
+    { id: 'ORD-7782A', number: '+1 555 4921', country: 'United States', price: 'Rs4.99', date: '2026-03-07', method: 'Easypaisa', status: 'Approved' },
+    { id: 'ORD-7781B', number: '+44 555 8812', country: 'United Kingdom', price: 'Rs6.50', date: '2026-03-05', method: 'JazzCash', status: 'Pending' },
+    { id: 'ORD-7775C', number: '+1 555 1198', country: 'Canada', price: 'Rs3.99', date: '2026-03-01', method: 'Easypaisa', status: 'Approved' },
+    { id: 'ORD-7760D', number: '+61 555 3321', country: 'Australia', price: 'Rs8.00', date: '2026-02-28', method: 'Crypto', status: 'Rejected' },
+    { id: 'ORD-7751E', number: '+49 555 7744', country: 'Germany', price: 'Rs5.50', date: '2026-02-15', method: 'JazzCash', status: 'Approved' },
 ];
 
 const MOCK_USER = {
@@ -167,25 +126,28 @@ const CardGlowStyles = () => (
 const NumberCard = ({ num, navigate }) => {
     const [btnPressed, setBtnPressed] = useState(false);
 
+    // Backend data mapping: num.country might be an object or string depending on population
+    const countryName = num.country?.name || num.countryName || 'N/A';
+    const flagUrl = num.country?.flag || num.flagUrl;
+
     const handleTouchStart = (e) => {
-        e.preventDefault(); // stop ghost click
+        e.preventDefault();
         setBtnPressed(true);
         setTimeout(() => {
             navigate('confirm-order', { number: num });
-        }, 150); // small delay so gradient flash is visible
+        }, 150);
     };
 
     return (
         <div className="card-glow-pulse relative overflow-hidden bg-[#111] border rounded-2xl p-5 flex flex-col h-full shadow-lg">
-            {/* CSS-animated pink glow overlay */}
             <div className="card-glow-overlay absolute inset-0 pointer-events-none rounded-2xl"
                 style={{ background: 'linear-gradient(135deg, rgba(255,77,166,0.07) 0%, rgba(157,78,221,0.07) 100%)' }}
             />
 
             <div className="flex justify-between items-center mb-6 relative z-10">
                 <div className="flex items-center gap-2.5 bg-black/50 pr-3 pl-2 py-1.5 rounded-full border border-white/5 shadow-sm">
-                    <img src={num.flagUrl} alt={num.countryName} className="w-5 h-auto rounded-[2px]" />
-                    <span className="text-xs font-semibold text-gray-300">{num.countryName}</span>
+                    {flagUrl && <img src={flagUrl} alt={countryName} className="w-5 h-auto rounded-[2px]" />}
+                    <span className="text-xs font-semibold text-gray-300">{countryName}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <div className="relative flex h-2 w-2">
@@ -196,14 +158,11 @@ const NumberCard = ({ num, navigate }) => {
                 </div>
             </div>
 
-            {/* Dual-layer text: white base + pink overlay cross-fades smoothly via opacity */}
             <div className="flex-grow flex items-center justify-center py-4 relative z-10">
                 <div className="relative">
-                    {/* Layer 1: white→gray base (always visible) */}
                     <h3 className="text-xl sm:text-2xl lg:text-[1.35rem] xl:text-2xl font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                         {num.number}
                     </h3>
-                    {/* Layer 2: pink→purple overlay — fades in/out via opacity (GPU smooth) */}
                     <h3 className="card-glow-overlay absolute inset-0 text-xl sm:text-2xl lg:text-[1.35rem] xl:text-2xl font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
                         {num.number}
                     </h3>
@@ -214,8 +173,7 @@ const NumberCard = ({ num, navigate }) => {
                 <div>
                     <span className="text-[10px] text-gray-500 block uppercase font-bold tracking-widest mb-0.5">Price</span>
                     <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-bold text-white">${num.price}</span>
-                        <span className="text-xs text-gray-500 font-medium">/mo</span>
+                        <span className="text-lg font-bold text-white">Rs{num.price}</span>
                     </div>
                 </div>
                 <button
@@ -235,22 +193,30 @@ const NumberCard = ({ num, navigate }) => {
 };
 
 // 1. Virtual Numbers Page
-const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
+const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) => {
     const [search, setSearch] = useState('');
     const [filterCountry, setFilterCountry] = useState(preSelectedCountry || 'all');
     const [sortBy, setSortBy] = useState('price-asc');
 
     const filteredNumbers = useMemo(() => {
-        let result = MOCK_NUMBERS;
-        if (filterCountry !== 'all') result = result.filter(n => n.countryId === filterCountry);
-        if (search) result = result.filter(n => n.number.includes(search) || n.countryName.toLowerCase().includes(search.toLowerCase()));
+        let result = [...numbers];
+        if (filterCountry !== 'all') {
+            result = result.filter(n => (n.country?.name || n.countryName) === filterCountry);
+        }
+        if (search) {
+            const s = search.toLowerCase();
+            result = result.filter(n =>
+                n.number.includes(search) ||
+                (n.country?.name || n.countryName || '').toLowerCase().includes(s)
+            );
+        }
 
         return result.sort((a, b) => {
             if (sortBy === 'price-asc') return parseFloat(a.price) - parseFloat(b.price);
             if (sortBy === 'price-desc') return parseFloat(b.price) - parseFloat(a.price);
             return 0;
         });
-    }, [search, filterCountry, sortBy]);
+    }, [search, filterCountry, sortBy, numbers]);
 
     return (
         <PageWrapper>
@@ -278,8 +244,8 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
                     className="bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all appearance-none cursor-pointer md:w-56"
                 >
                     <option value="all">All Countries</option>
-                    {MOCK_COUNTRIES.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
+                    {countries.map(c => (
+                        <option key={c._id || c.id} value={c.name}>{c.name}</option>
                     ))}
                 </select>
                 <select
@@ -295,7 +261,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredNumbers.map((num) => (
-                    <NumberCard key={num.id} num={num} navigate={navigate} />
+                    <NumberCard key={num._id || num.id} num={num} navigate={navigate} />
                 ))}
             </div>
             {filteredNumbers.length === 0 && (
@@ -312,7 +278,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry }) => {
 const COUNTRY_STARTING_PRICES = { us: 300, gb: 350 };
 
 // 2. Countries Page
-const Countries = ({ navigate }) => {
+const Countries = ({ navigate, countries }) => {
     return (
         <PageWrapper>
             <div className="mb-8">
@@ -321,24 +287,24 @@ const Countries = ({ navigate }) => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {MOCK_COUNTRIES.map((country) => (
+                {countries.map((country) => (
                     <motion.div
-                        key={country.id}
+                        key={country._id || country.id}
                         whileHover={{ scale: 1.02 }}
-                        onClick={() => navigate('numbers', { countryId: country.id })}
+                        onClick={() => navigate('numbers', { countryId: country.name })}
                         className="cursor-pointer bg-[#111] border border-white/10 rounded-2xl p-5 hover:border-[#9d4edd]/50 hover:bg-[#161616] transition-all flex items-center justify-between group shadow-lg hover:shadow-[0_0_20px_rgba(157,78,221,0.15)] relative overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-gradient-to-br from-[#9d4edd]/0 to-[#9d4edd]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <div className="flex items-center gap-4 relative z-10">
                             <div className="w-12 h-12 rounded-full bg-black/50 border border-white/5 flex items-center justify-center overflow-hidden shadow-sm group-hover:scale-110 transition-transform duration-300 p-2.5">
-                                <img src={country.flagUrl} alt={country.name} className="w-full h-auto object-contain rounded-sm" />
+                                {country.flag && <img src={country.flag} alt={country.name} className="w-full h-auto object-contain rounded-sm" />}
                             </div>
                             <div>
                                 <h3 className="text-white font-bold text-[1.05rem]">{country.name}</h3>
-                                <p className="text-xs text-gray-400 mt-0.5">{country.available} numbers available</p>
-                                {COUNTRY_STARTING_PRICES[country.id] && (
+                                <p className="text-xs text-gray-400 mt-0.5">{country.activeNumbers || 0} numbers available</p>
+                                {country.price && (
                                     <p className="text-[10px] text-[#9d4edd] mt-0.5 font-semibold">
-                                        Starting from PKR {COUNTRY_STARTING_PRICES[country.id]}
+                                        Starting from Rs {country.price}
                                     </p>
                                 )}
                             </div>
@@ -347,6 +313,12 @@ const Countries = ({ navigate }) => {
                     </motion.div>
                 ))}
             </div>
+            {countries.length === 0 && (
+                <div className="text-center py-20 text-gray-500">
+                    <Globe className="w-12 h-12 mx-auto mb-4 opacity-40" />
+                    <p>No countries available yet.</p>
+                </div>
+            )}
         </PageWrapper>
     );
 };
@@ -585,15 +557,15 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
 
                     <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl mb-8 relative z-10">
                         <div className="flex items-center gap-3">
-                            <img src={number.flagUrl} alt={number.countryName} className="w-8 h-auto rounded-sm shadow-sm" />
+                            {(number.country?.flag || number.flagUrl) && <img src={number.country?.flag || number.flagUrl} alt={number.country?.name || number.countryName} className="w-8 h-auto rounded-sm shadow-sm" />}
                             <div>
-                                <div className="text-sm text-gray-400">{number.countryName}</div>
+                                <div className="text-sm text-gray-400">{number.country?.name || number.countryName}</div>
                                 <div className="text-lg font-mono text-white font-bold">{number.number}</div>
                             </div>
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 uppercase tracking-widest font-bold">Total</div>
-                            <div className="text-xl text-[#ff4da6] font-bold">${number.price}</div>
+                            <div className="text-xl text-[#ff4da6] font-bold">Rs{number.price}</div>
                         </div>
                     </div>
 
@@ -650,7 +622,7 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
                         </div>
 
                         <p className="text-sm text-gray-400 mb-8 leading-relaxed relative z-10">
-                            Send the payment of <strong className="text-white">${number.price}</strong> using one of the methods below. Upload your payment slip to confirm your order.
+                            Send the payment of <strong className="text-white">Rs{number.price}</strong> using one of the methods below. Upload your payment slip to confirm your order.
                         </p>
 
                         <div className="space-y-5 relative z-10">
@@ -943,6 +915,36 @@ export default function App() {
     const [routeData, setRouteData] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+    // Dynamic State
+    const [numbers, setNumbers] = useState([]);
+    const [countries, setCountries] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch Data from Backend
+    useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [countriesRes, numbersRes] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/countries/getAllCountries`),
+                    axios.get(`${API_BASE_URL}/numbers/getAllNumbers`)
+                ]);
+
+                if (countriesRes.data.success) {
+                    setCountries(countriesRes.data.countries);
+                }
+                if (numbersRes.data.success) {
+                    setNumbers(numbersRes.data.numbers);
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
     // Router logic
     const navigate = (path, data = null) => {
         setCurrentPath(path);
@@ -1079,14 +1081,23 @@ export default function App() {
 
                 {/* Content Wrapper */}
                 <div className="p-6 md:p-10 pb-24">
-                    {currentPath === 'numbers' && <VirtualNumbers navigate={navigate} preSelectedCountry={routeData?.countryId} />}
-                    {currentPath === 'countries' && <Countries navigate={navigate} />}
-                    {currentPath === 'orders' && <Orders />}
-                    {currentPath === 'support' && <Support />}
-                    {currentPath === 'account' && <Account />}
-                    {currentPath === 'confirm-order' && <ConfirmOrder navigate={navigate} selectedData={routeData} />}
-                    {currentPath === 'otp' && <GetOTPs navigate={navigate} />}
-                    {currentPath === 'active' && <MyActiveNumbers />}
+                    {loading ? (
+                        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-gray-500">
+                            <Loader2 className="w-10 h-10 animate-spin text-[#ff4da6]" />
+                            <p className="animate-pulse">Loading dashboard data...</p>
+                        </div>
+                    ) : (
+                        <>
+                            {currentPath === 'numbers' && <VirtualNumbers navigate={navigate} preSelectedCountry={routeData?.countryId} numbers={numbers} countries={countries} />}
+                            {currentPath === 'countries' && <Countries navigate={navigate} countries={countries} />}
+                            {currentPath === 'orders' && <Orders />}
+                            {currentPath === 'support' && <Support />}
+                            {currentPath === 'account' && <Account />}
+                            {currentPath === 'confirm-order' && <ConfirmOrder navigate={navigate} selectedData={routeData} />}
+                            {currentPath === 'otp' && <GetOTPs navigate={navigate} />}
+                            {currentPath === 'active' && <MyActiveNumbers />}
+                        </>
+                    )}
                 </div>
             </main>
         </div>

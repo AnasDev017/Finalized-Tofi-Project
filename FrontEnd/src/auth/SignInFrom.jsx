@@ -1,12 +1,73 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Eye, EyeOff, ChevronRight, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import API_BASE_URL from "../api/baseUrl";
+import Swal from "sweetalert2";
 
-export default function SigninForm({ onBack }) {
-
+export default function SigninForm() {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        email: "",
+        password: ""
+    });
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.email || !formData.password) {
+            Swal.fire({
+                title: "Missing fields",
+                text: "Please enter your email and password.",
+                icon: "warning",
+                background: "#111",
+                color: "#fff",
+                customClass: { popup: 'rounded-3xl border border-white/10 shadow-2xl' }
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+                email: formData.email,
+                password: formData.password
+            });
+
+            if (response.data.success) {
+                // Save token and user info
+                localStorage.setItem("userToken", response.data.token);
+                localStorage.setItem("userData", JSON.stringify(response.data.user));
+
+                Swal.fire({
+                    title: "Welcome Back!",
+                    text: response.data.message || "Login successful.",
+                    icon: "success",
+                    background: "#111",
+                    color: "#fff",
+                    timer: 1500,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-3xl border border-white/10 shadow-2xl' }
+                });
+
+                setTimeout(() => navigate("/dashboard"), 1500);
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            Swal.fire({
+                title: "Login Failed",
+                text: error.response?.data?.message || "Invalid credentials. Please try again.",
+                icon: "error",
+                background: "#111",
+                color: "#fff",
+                customClass: { popup: 'rounded-3xl border border-white/10 shadow-2xl' }
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="relative min-h-screen flex items-center justify-center p-6 bg-[#0d0d0d] overflow-hidden">
@@ -57,16 +118,19 @@ export default function SigninForm({ onBack }) {
                 </div>
 
                 {/* Form */}
-                <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); navigate("/dashboard"); }}>
+                <form className="space-y-6" onSubmit={handleSubmit}>
 
                     {/* Email */}
                     <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
 
                         <input
+                            required
                             type="email"
                             placeholder="Email Address"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:border-[#ff4da6] outline-none"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white focus:border-[#ff4da6] outline-none transition-all"
                         />
                     </div>
 
@@ -76,43 +140,53 @@ export default function SigninForm({ onBack }) {
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
 
                         <input
+                            required
                             type={showPassword ? "text" : "password"}
                             placeholder="Password"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-12 text-white focus:border-[#ff4da6] outline-none"
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-12 text-white focus:border-[#ff4da6] outline-none transition-all"
                         />
 
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
                         >
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
 
                     </div>
 
-                    {/* Forgot */}
-                    {/* <div className="flex justify-end">
-            <a href="#" className="text-sm text-gray-400 hover:text-[#ff4da6]">
-              Forgot password?
-            </a>
-          </div> */}
-
                     {/* Button */}
-                    <button type="submit" className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] font-bold flex items-center text-white justify-center gap-2 cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(255,77,166,0.6)] active:scale-[0.97]">
-                        Sign In
-                        {/* <ArrowRight size={18}/> */}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] font-bold flex items-center text-white justify-center gap-2 cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_30px_rgba(255,77,166,0.6)] active:scale-[0.97] disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                Signing In...
+                            </>
+                        ) : (
+                            "Sign In"
+                        )}
                     </button>
 
-                </form>
+                    {/* Don't have an account */}
+                    <p className="text-center text-gray-500 mt-6 text-sm">
+                        Don't have an account?{" "}
+                        <button
+                            type="button"
+                            onClick={() => navigate("/signup")}
+                            className="text-white font-semibold hover:text-[#ff4da6] transition-colors cursor-pointer"
+                        >
+                            Sign Up
+                        </button>
+                    </p>
 
-                {/* Footer */}
-                {/* <p className="text-center text-gray-500 mt-8 text-sm">
-          Don't have an account?{" "}
-          <span className="text-white cursor-pointer hover:text-[#ff4da6]">
-            Sign Up
-          </span>
-        </p> */}
+                </form>
 
             </motion.div>
 

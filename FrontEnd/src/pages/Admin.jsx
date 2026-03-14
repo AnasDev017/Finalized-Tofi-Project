@@ -61,29 +61,66 @@ const PageWrapper = ({ children, title, description }) => (
 
 const ProductsView = ({ numbers, setNumbers, countries }) => {
     const [formData, setFormData] = useState({ number: '', country: '', price: '' });
+    const [loading, setLoading] = useState(false);
 
-    const handleAdd = (e) => {
+    const handleAdd = async (e) => {
         e.preventDefault();
-        if (!formData.number || !formData.country || !formData.price) return;
-        const newNum = {
-            id: Date.now(),
-            number: formData.number.trim(),
-            country: formData.country,
-            price: parseFloat(formData.price),
-            status: 'Available'
-        };
-        setNumbers([newNum, ...numbers]);
-        setFormData({ number: '', country: '', price: '' });
-        Swal.fire({
-            title: 'Number Added!',
-            text: 'Virtual number is now available.',
-            icon: 'success',
-            background: '#111',
-            color: '#fff',
-            timer: 1500,
-            showConfirmButton: false,
-            customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
-        });
+        if (!formData.number || !formData.country || !formData.price) {
+            Swal.fire({
+                title: 'Missing Fields',
+                text: 'Please fill all required fields.',
+                icon: 'warning',
+                background: '#111',
+                color: '#fff',
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_BASE_URL}/numbers/addNumber`, {
+                number: formData.number.trim(),
+                countryName: formData.country,
+                price: parseFloat(formData.price),
+                status: 'available'
+            });
+
+            if (response.data.success) {
+                const newNum = response.data.newNumber;
+                // Add to local state with populated country for immediate UI sync
+                const countryObj = countries.find(c => c.name === formData.country);
+                const numberToStore = {
+                    ...newNum,
+                    country: countryObj || { name: formData.country }
+                };
+
+                setNumbers([numberToStore, ...numbers]);
+                setFormData({ number: '', country: '', price: '' });
+                Swal.fire({
+                    title: 'Number Added!',
+                    text: 'Virtual number is now available.',
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+                });
+            }
+        } catch (error) {
+            console.error("Error adding number:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: error.response?.data?.message || 'Failed to add number',
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -105,16 +142,31 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
         });
 
         if (result.isConfirmed) {
-            setNumbers(numbers.filter(n => n.id !== id));
-            Swal.fire({
-                title: 'Deleted!',
-                icon: 'success',
-                background: '#111',
-                color: '#fff',
-                timer: 1000,
-                showConfirmButton: false,
-                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
-            });
+            try {
+                const response = await axios.delete(`${API_BASE_URL}/numbers/deleteNumber/${id}`);
+                if (response.data.success) {
+                    setNumbers(numbers.filter(n => (n._id || n.id) !== id));
+                    Swal.fire({
+                        title: 'Deleted!',
+                        icon: 'success',
+                        background: '#111',
+                        color: '#fff',
+                        timer: 1000,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+                    });
+                }
+            } catch (error) {
+                console.error("Error deleting number:", error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.response?.data?.message || 'Failed to delete number',
+                    icon: 'error',
+                    background: '#111',
+                    color: '#fff',
+                    customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+                });
+            }
         }
     };
 
@@ -134,15 +186,19 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Country</label>
                                 <select value={formData.country} onChange={e => setFormData({ ...formData, country: e.target.value })} className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all appearance-none cursor-pointer">
                                     <option value="">Select Country</option>
-                                    {countries.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    {countries.map(c => <option key={c._id || c.id} value={c.name}>{c.name}</option>)}
                                 </select>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Price (Rs)</label>
                                 <input type="number" step="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} placeholder="3.00" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
                             </div>
-                            <button type="submit" className="w-full bg-[#ff4da6] hover:bg-[#ff4da6]/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#ff4da6]/20 mt-2">
-                                Add Number
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-[#ff4da6] hover:bg-[#ff4da6]/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#ff4da6]/20 mt-2 flex items-center justify-center gap-2"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Add Number"}
                             </button>
                         </form>
                     </div>
@@ -163,17 +219,22 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {numbers.map(num => (
-                                    <tr key={num.id} className="hover:bg-white/5 transition-colors">
+                                    <tr key={num._id || num.id} className="hover:bg-white/5 transition-colors">
                                         <td className="p-5 font-mono text-sm font-bold text-white">{num.number}</td>
-                                        <td className="p-5 text-sm text-gray-300">{num.country}</td>
-                                        <td className="p-5 text-sm text-gray-300">Rs{num.price.toFixed(2)}</td>
+                                        <td className="p-5 text-sm text-gray-300">
+                                            <div className="flex items-center gap-2">
+                                                {num.country?.flag && <img src={num.country.flag} alt="" className="w-5 h-3 object-cover rounded-sm" />}
+                                                {num.country?.name || num.country || 'N/A'}
+                                            </div>
+                                        </td>
+                                        <td className="p-5 text-sm text-gray-300">Rs{num.price?.toFixed(2)}</td>
                                         <td className="p-5">
-                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${num.status === 'Available' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${num.status === 'available' || num.status === 'Available' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                                 {num.status}
                                             </span>
                                         </td>
                                         <td className="p-5 text-right">
-                                            <button onClick={() => handleDelete(num.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
+                                            <button onClick={() => handleDelete(num._id || num.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>
@@ -190,6 +251,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
         </PageWrapper>
     );
 };
+
 
 const CountriesView = ({ countries, setCountries }) => {
     const [formData, setFormData] = useState({ name: '', code: '', activeNumbers: '', price: '' });
