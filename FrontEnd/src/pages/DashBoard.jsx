@@ -343,7 +343,12 @@ const Orders = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/orders/getAllOrders`);
+                const token = localStorage.getItem("userToken");
+                const res = await axios.get(`${API_BASE_URL}/orders/getMyOrders`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
                 if (res.data.success) setOrders(res.data.orders);
             } catch (err) {
                 console.error('Error fetching orders:', err);
@@ -590,6 +595,7 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
         setSubmitting(true);
         setSubmitError('');
         try {
+            const token = localStorage.getItem("userToken");
             const res = await axios.post(`${API_BASE_URL}/orders/addOrder`, {
                 customerName: fullName,
                 customerEmail: email,
@@ -597,6 +603,10 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
                 numberId: number._id,
                 paymentMethod,
                 transactionId,
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
             });
             if (res.data.success) {
                 navigate('orders');
@@ -851,9 +861,35 @@ const GetOTPs = ({ navigate }) => {
 
 // 8. My Active Numbers Page
 const MyActiveNumbers = () => {
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [copiedOtp, setCopiedOtp] = useState(null);
 
+    useEffect(() => {
+        const fetchActiveNumbers = async () => {
+            try {
+                const token = localStorage.getItem("userToken");
+                const res = await axios.get(`${API_BASE_URL}/orders/getMyOrders`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                if (res.data.success) {
+                    // Filter for approved orders
+                    const active = res.data.orders.filter(o => o.status === 'approved');
+                    setOrders(active);
+                }
+            } catch (err) {
+                console.error('Error fetching active numbers:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchActiveNumbers();
+    }, []);
+
     const handleCopyOtp = (id, otp) => {
+        if (!otp) return;
         navigator.clipboard.writeText(otp);
         setCopiedOtp(id);
         setTimeout(() => setCopiedOtp(null), 2000);
@@ -867,16 +903,20 @@ const MyActiveNumbers = () => {
                 <p className="text-gray-400">Numbers approved by admin appear here with incoming OTP codes.</p>
             </div>
 
-            {MOCK_ACTIVE_NUMBERS.length === 0 ? (
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
+                </div>
+            ) : orders.length === 0 ? (
                 <div className="text-center py-20 text-gray-500">
                     <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-40" />
                     <p>No active numbers yet. Purchase a number to get started.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {MOCK_ACTIVE_NUMBERS.map((item, idx) => (
+                    {orders.map((item, idx) => (
                         <motion.div
-                            key={item.id}
+                            key={item._id}
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.08 }}
@@ -891,10 +931,10 @@ const MyActiveNumbers = () => {
                             {/* ── ROW 1: Country pill + ACTIVE badge ── */}
                             <div className="flex items-center justify-between mb-6 relative z-10">
                                 <div className="flex items-center gap-2 bg-white/[0.09] border border-white/[0.09] rounded-full pl-1.5 pr-3 py-1.5">
-                                    {item.flagUrl && (
-                                        <img src={item.flagUrl} alt={item.country} className="w-5 h-5 rounded-full object-cover shrink-0" />
+                                    {item.country?.flag && (
+                                        <img src={item.country.flag} alt={item.country.name} className="w-5 h-3 rounded-[2px] object-cover shrink-0" />
                                     )}
-                                    <span className="text-white font-bold text-sm">{item.country}</span>
+                                    <span className="text-white font-bold text-sm">{item.country?.name || 'Unknown'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <div className="relative flex h-2 w-2">
@@ -905,17 +945,15 @@ const MyActiveNumbers = () => {
                                 </div>
                             </div>
 
-                            {/* ── ROW 2: NUMBER (dual-layer) ── */}
+                            {/* ── ROW 2: NUMBER ── */}
                             <div className="mb-5 relative z-10">
                                 <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-bold mb-2">Number</p>
                                 <div className="relative">
-                                    {/* Layer 1: white base */}
                                     <p className="text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                        {item.number}
+                                        {item.purchasedNumber}
                                     </p>
-                                    {/* Layer 2: pink overlay — fades in/out like NumberCard */}
                                     <p className="card-glow-overlay absolute inset-0 text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
-                                        {item.number}
+                                        {item.purchasedNumber}
                                     </p>
                                 </div>
                             </div>
@@ -924,7 +962,7 @@ const MyActiveNumbers = () => {
                             <div className="grid grid-cols-2 gap-5 mb-6 relative z-10">
                                 <div>
                                     <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Service</p>
-                                    <p className="text-white font-bold text-sm">{item.service}</p>
+                                    <p className="text-white font-bold text-sm">{item.service || 'Virtual Number'}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Order ID</p>
@@ -948,10 +986,10 @@ const MyActiveNumbers = () => {
                                                 {item.otp.split('').join(' ')}
                                             </span>
                                             <button
-                                                onClick={() => handleCopyOtp(item.id, item.otp)}
+                                                onClick={() => handleCopyOtp(item._id, item.otp)}
                                                 className="ml-3 p-2 text-[#ff4da6]/70 hover:text-[#ff4da6] hover:bg-[#ff4da6]/10 rounded-lg transition-all shrink-0"
                                             >
-                                                {copiedOtp === item.id
+                                                {copiedOtp === item._id
                                                     ? <Check className="w-4 h-4 text-green-400" />
                                                     : <Copy className="w-4 h-4" />}
                                             </button>

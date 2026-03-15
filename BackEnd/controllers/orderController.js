@@ -31,6 +31,8 @@ export const addOrder = async (req, res) => {
 
     const newOrder = new Order({
       orderId,
+      // Link to logged-in user if token was provided (optional auth)
+      user: req.user?._id || null,
       customer: {
         name: customerName,
         email: customerEmail,
@@ -68,7 +70,22 @@ export const addOrder = async (req, res) => {
   }
 };
 
-// ─── Get All Orders ───────────────────────────────────────────────────────────
+// ─── Get My Orders (Logged-in user only) ─────────────────────────────────────
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .populate("number", "number price")
+      .populate("country", "name flag")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, orders });
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ─── Get All Orders (Admin) ───────────────────────────────────────────────────
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()

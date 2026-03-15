@@ -7,6 +7,11 @@ const OrderSchema = new mongoose.Schema({
     unique: true
   },
 
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+
   customer: {
     name: {
       type: String,
