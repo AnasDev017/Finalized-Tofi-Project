@@ -435,124 +435,216 @@ const CountriesView = ({ countries, setCountries }) => {
     );
 };
 
-const OrdersView = ({ orders, setOrders }) => {
-    const handleStatusChange = (id, newStatus) => {
-        setOrders(orders.map(order => order.id === id ? { ...order, status: newStatus } : order));
+const OrdersView = () => {
+    const [orders, setOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/orders/getAllOrders`);
+                if (res.data.success) setOrders(res.data.orders);
+            } catch (err) {
+                console.error('Error fetching orders:', err);
+            } finally {
+                setOrdersLoading(false);
+            }
+        };
+        fetchOrders();
+    }, []);
+
+    const handleStatusChange = async (id, newStatus) => {
+        try {
+            const res = await axios.patch(`${API_BASE_URL}/orders/updateOrder/${id}`, { status: newStatus });
+            if (res.data.success) {
+                setOrders(orders.map(o => o._id === id ? { ...o, status: newStatus } : o));
+                Swal.fire({
+                    title: `Order ${newStatus}!`,
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                    timer: 1200,
+                    showConfirmButton: false,
+                    customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+                });
+            }
+        } catch (err) {
+            console.error('Error updating order:', err);
+            Swal.fire({
+                title: 'Error!',
+                text: err.response?.data?.message || 'Failed to update order.',
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
+            });
+        }
     };
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Approved': return 'text-green-400 bg-green-500/10 border-green-500/20';
-            case 'Rejected': return 'text-red-400 bg-red-500/10 border-red-500/20';
+            case 'approved': return 'text-green-400 bg-green-500/10 border-green-500/20';
+            case 'rejected': return 'text-red-400 bg-red-500/10 border-red-500/20';
             default: return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
         }
     };
 
     return (
         <PageWrapper title="Customer Orders" description="Manage all incoming number purchase orders.">
-            <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[1000px]">
-                        <thead className="bg-black/40 border-b border-white/10">
-                            <tr>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Order ID</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Purchased Number</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {orders.map(order => (
-                                <tr key={order.id} className="hover:bg-white/5 transition-colors group">
-                                    <td className="p-5 text-sm font-bold text-white">{order.id}</td>
-                                    <td className="p-5">
-                                        <div className="text-sm font-bold text-white">{order.name}</div>
-                                        <div className="text-xs text-gray-500">{order.email}</div>
-                                    </td>
-                                    <td className="p-5">
-                                        <div className="text-sm font-mono text-gray-300">{order.number}</div>
-                                        <div className="text-xs text-gray-500">{order.country}</div>
-                                    </td>
-                                    <td className="p-5">
-                                        <div className="text-sm font-bold text-white">Rs{order.price.toFixed(2)}</div>
-                                        <div className="text-[10px] text-gray-500 uppercase">{order.method}</div>
-                                    </td>
-                                    <td className="p-5 text-sm text-gray-400">{order.date}</td>
-                                    <td className="p-5">
-                                        <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border ${getStatusColor(order.status)}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-5 text-right">
-                                        <select
-                                            value={order.status}
-                                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                            className="bg-[#161616] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-[#ff4da6]/50 cursor-pointer"
-                                        >
-                                            <option value="Pending">Pending</option>
-                                            <option value="Approved">Approved</option>
-                                            <option value="Rejected">Rejected</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {ordersLoading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
                 </div>
-            </div>
+            ) : (
+                <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[1000px]">
+                            <thead className="bg-black/40 border-b border-white/10">
+                                <tr>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Order ID</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Purchased Number</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {orders.length === 0 && (
+                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">No orders yet.</td></tr>
+                                )}
+                                {orders.map(order => (
+                                    <tr key={order._id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="p-5 text-sm font-bold text-white">{order.orderId}</td>
+                                        <td className="p-5">
+                                            <div className="text-sm font-bold text-white">{order.customer?.name}</div>
+                                            <div className="text-xs text-gray-500">{order.customer?.email}</div>
+                                            {order.customer?.whatsapp && (
+                                                <div className="text-xs text-green-400 mt-0.5">WA: {order.customer.whatsapp}</div>
+                                            )}
+                                        </td>
+                                        <td className="p-5">
+                                            <div className="text-sm font-mono text-gray-300">{order.purchasedNumber}</div>
+                                            <div className="text-xs text-gray-500">{order.country?.name}</div>
+                                        </td>
+                                        <td className="p-5">
+                                            <div className="text-sm font-bold text-white">Rs{order.amount}</div>
+                                            <div className="text-[10px] text-gray-500 uppercase">{order.payment?.method}</div>
+                                        </td>
+                                        <td className="p-5 text-sm text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                        <td className="p-5">
+                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border ${getStatusColor(order.status)}`}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                        <td className="p-5 text-right">
+                                            <select
+                                                value={order.status}
+                                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                                className="bg-[#161616] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-[#ff4da6]/50 cursor-pointer"
+                                            >
+                                                <option value="pending">Pending</option>
+                                                <option value="approved">Approved</option>
+                                                <option value="rejected">Rejected</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </PageWrapper>
     );
 };
 
-const PaymentsView = ({ payments }) => {
+const PaymentsView = () => {
+    const [payments, setPayments] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchPayments = async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/orders/getAllOrders`);
+                if (res.data.success) setPayments(res.data.orders);
+            } catch (err) {
+                console.error('Error fetching payments:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPayments();
+    }, []);
+
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Verified': return 'text-green-400 bg-green-500/10 border-green-500/20';
-            case 'Rejected': return 'text-red-400 bg-red-500/10 border-red-500/20';
+            case 'approved': return 'text-green-400 bg-green-500/10 border-green-500/20';
+            case 'rejected': return 'text-red-400 bg-red-500/10 border-red-500/20';
             default: return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'approved': return 'Verified';
+            case 'rejected': return 'Rejected';
+            default: return 'Pending';
         }
     };
 
     return (
         <PageWrapper title="Payment Transactions" description="Track all payments received from customers.">
-            <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[900px]">
-                        <thead className="bg-black/40 border-b border-white/10">
-                            <tr>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer Name</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Method</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Number / Order</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Payment Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {payments.map(payment => (
-                                <tr key={payment.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-5 text-sm font-mono font-bold text-gray-300">{payment.id}</td>
-                                    <td className="p-5 text-sm text-white font-medium">{payment.name}</td>
-                                    <td className="p-5 text-sm text-gray-400">{payment.method}</td>
-                                    <td className="p-5 text-sm font-bold text-white">Rs{payment.amount.toFixed(2)}</td>
-                                    <td className="p-5">
-                                        <div className="text-sm font-mono text-gray-300">{payment.number}</div>
-                                        <div className="text-[10px] text-gray-500 uppercase">{payment.orderId}</div>
-                                    </td>
-                                    <td className="p-5 text-right">
-                                        <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border inline-block ${getStatusColor(payment.status)}`}>
-                                            {payment.status}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
                 </div>
-            </div>
+            ) : (
+                <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[900px]">
+                            <thead className="bg-black/40 border-b border-white/10">
+                                <tr>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Transaction ID</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer Name</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Method</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Number / Order</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Payment Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {payments.length === 0 && (
+                                    <tr><td colSpan="6" className="p-8 text-center text-gray-500">No transactions yet.</td></tr>
+                                )}
+                                {payments.map(order => (
+                                    <tr key={order._id} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-5 text-sm font-mono font-bold text-gray-300">
+                                            {order.payment?.transactionId || <span className="text-gray-600 italic">N/A</span>}
+                                        </td>
+                                        <td className="p-5">
+                                            <div className="text-sm text-white font-medium">{order.customer?.name}</div>
+                                            <div className="text-xs text-gray-500">{order.customer?.email}</div>
+                                        </td>
+                                        <td className="p-5 text-sm text-gray-400 capitalize">{order.payment?.method}</td>
+                                        <td className="p-5 text-sm font-bold text-white">Rs{order.amount}</td>
+                                        <td className="p-5">
+                                            <div className="text-sm font-mono text-gray-300">{order.purchasedNumber}</div>
+                                            <div className="text-[10px] text-gray-500 uppercase">{order.orderId}</div>
+                                        </td>
+                                        <td className="p-5 text-right">
+                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border inline-block ${getStatusColor(order.status)}`}>
+                                                {getStatusLabel(order.status)}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </PageWrapper>
     );
 };
@@ -670,8 +762,6 @@ export default function Admin() {
     // Global State
     const [numbers, setNumbers] = useState([]);
     const [countries, setCountries] = useState([]);
-    const [orders, setOrders] = useState(INITIAL_ORDERS);
-    const [payments, setPayments] = useState(INITIAL_PAYMENTS);
     const [tickets, setTickets] = useState(INITIAL_TICKETS);
     const [loading, setLoading] = useState(true);
 
@@ -850,8 +940,8 @@ export default function Admin() {
                     <AnimatePresence mode="wait">
                         {currentPath === 'numbers' && <ProductsView key="numbers" numbers={numbers} setNumbers={setNumbers} countries={countries} />}
                         {currentPath === 'countries' && <CountriesView key="countries" countries={countries} setCountries={setCountries} />}
-                        {currentPath === 'orders' && <OrdersView key="orders" orders={orders} setOrders={setOrders} />}
-                        {currentPath === 'payments' && <PaymentsView key="payments" payments={payments} />}
+                        {currentPath === 'orders' && <OrdersView key="orders" />}
+                        {currentPath === 'payments' && <PaymentsView key="payments" />}
                         {currentPath === 'tickets' && <TicketsView key="tickets" tickets={tickets} setTickets={setTickets} />}
                     </AnimatePresence>
                 </main>

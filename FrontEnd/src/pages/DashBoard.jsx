@@ -77,7 +77,7 @@ const PageWrapper = ({ children, className = "" }) => {
                 { y: 0, opacity: 1, duration: 0.5, stagger: 0.05, ease: "power3.out" }
             );
         }
-    }, [children]);
+    }, []); // ← empty dep array: animate only on mount, not on every keystroke
 
     return (
         <div ref={containerRef} className={`w-full max-w-7xl mx-auto ${className}`}>
@@ -149,13 +149,21 @@ const NumberCard = ({ num, navigate }) => {
                     {flagUrl && <img src={flagUrl} alt={countryName} className="w-5 h-auto rounded-[2px]" />}
                     <span className="text-xs font-semibold text-gray-300">{countryName}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                {/* Dynamic status badge */}
+                {num.status === 'sold' ? (
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                        <span className="text-[10px] uppercase font-extrabold text-red-400 tracking-wider">Sold</span>
                     </div>
-                    <span className="text-[10px] uppercase font-extrabold text-green-500 tracking-wider">Active</span>
-                </div>
+                ) : (
+                    <div className="flex items-center gap-1.5">
+                        <div className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </div>
+                        <span className="text-[10px] uppercase font-extrabold text-green-500 tracking-wider">Available</span>
+                    </div>
+                )}
             </div>
 
             <div className="flex-grow flex items-center justify-center py-4 relative z-10">
@@ -199,7 +207,8 @@ const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) =>
     const [sortBy, setSortBy] = useState('price-asc');
 
     const filteredNumbers = useMemo(() => {
-        let result = [...numbers];
+        // Only show numbers that are available (not sold)
+        let result = numbers.filter(n => (n.status || '').toLowerCase() === 'available');
         if (filterCountry !== 'all') {
             result = result.filter(n => (n.country?.name || n.countryName) === filterCountry);
         }
@@ -270,7 +279,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) =>
                     <p>No numbers found matching your criteria.
                         <br />
                         (You can request your number through our WhatsApp support!)
-                        </p>
+                    </p>
                 </div>
             )}
         </PageWrapper>
@@ -328,11 +337,28 @@ const Countries = ({ navigate, countries }) => {
 
 // 3. Orders Page
 const Orders = () => {
+    const [orders, setOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/orders/getAllOrders`);
+                if (res.data.success) setOrders(res.data.orders);
+            } catch (err) {
+                console.error('Error fetching orders:', err);
+            } finally {
+                setOrdersLoading(false);
+            }
+        };
+        fetchOrders();
+    }, []);
+
     const getStatusConfig = (status) => {
         switch (status) {
-            case 'Approved': return { color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20', icon: CheckCircle };
-            case 'Pending': return { color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', icon: Clock };
-            case 'Rejected': return { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', icon: XCircle };
+            case 'approved': return { color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20', icon: CheckCircle };
+            case 'pending': return { color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', icon: Clock };
+            case 'rejected': return { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', icon: XCircle };
             default: return { color: 'text-gray-400', bg: 'bg-gray-400/10', border: 'border-gray-400/20', icon: Clock };
         }
     };
@@ -344,42 +370,53 @@ const Orders = () => {
                 <p className="text-gray-400">Track all your purchased numbers and order status.</p>
             </div>
 
-            <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
-                        <thead>
-                            <tr className="bg-black/40 border-b border-white/10">
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Order ID</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Number</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Location</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Price</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date</th>
-                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {MOCK_ORDERS.map((order) => {
-                                const statusConfig = getStatusConfig(order.status);
-                                const StatusIcon = statusConfig.icon;
-                                return (
-                                    <tr key={order.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="p-5 text-sm font-medium text-gray-300 whitespace-nowrap">{order.id}</td>
-                                        <td className="p-5 text-sm font-mono text-white group-hover:text-[#ff4da6] transition-colors whitespace-nowrap">{order.number}</td>
-                                        <td className="p-5 text-sm text-gray-400 whitespace-nowrap">{order.country}</td>
-                                        <td className="p-5 text-sm text-white font-medium whitespace-nowrap">{order.price}</td>
-                                        <td className="p-5 text-sm text-gray-400 whitespace-nowrap">{order.date}</td>
-                                        <td className="p-5 whitespace-nowrap">
-                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
-                                                <StatusIcon className="w-3.5 h-3.5" /> {order.status}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+            {ordersLoading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
                 </div>
-            </div>
+            ) : (
+                <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                                <tr className="bg-black/40 border-b border-white/10">
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Order ID</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Number</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Location</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Price</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Method</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {orders.length === 0 && (
+                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">No orders yet.</td></tr>
+                                )}
+                                {orders.map((order) => {
+                                    const statusConfig = getStatusConfig(order.status);
+                                    const StatusIcon = statusConfig.icon;
+                                    return (
+                                        <tr key={order._id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="p-5 text-sm font-medium text-gray-300 whitespace-nowrap">{order.orderId}</td>
+                                            <td className="p-5 text-sm font-mono text-white group-hover:text-[#ff4da6] transition-colors whitespace-nowrap">{order.purchasedNumber}</td>
+                                            <td className="p-5 text-sm text-gray-400 whitespace-nowrap">{order.country?.name || '—'}</td>
+                                            <td className="p-5 text-sm text-white font-medium whitespace-nowrap">Rs{order.amount}</td>
+                                            <td className="p-5 text-sm text-gray-400 whitespace-nowrap capitalize">{order.payment?.method || '—'}</td>
+                                            <td className="p-5 text-sm text-gray-400 whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString()}</td>
+                                            <td className="p-5 whitespace-nowrap">
+                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                                                    <StatusIcon className="w-3.5 h-3.5" /> {order.status}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </PageWrapper>
     );
 };
@@ -522,7 +559,15 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
     const number = selectedData?.number;
     const [copiedName, setCopiedName] = useState(false);
     const [copiedNumber, setCopiedNumber] = useState(false);
-    const [fileName, setFileName] = useState("");
+
+    // Form state
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [whatsapp, setWhatsapp] = useState('');
+    const [transactionId, setTransactionId] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     if (!number) {
         return (
@@ -537,6 +582,30 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
         navigator.clipboard.writeText(text);
         if (type === 'name') { setCopiedName(true); setTimeout(() => setCopiedName(false), 2000); }
         if (type === 'number') { setCopiedNumber(true); setTimeout(() => setCopiedNumber(false), 2000); }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!paymentMethod) { setSubmitError('Please select a payment method.'); return; }
+        setSubmitting(true);
+        setSubmitError('');
+        try {
+            const res = await axios.post(`${API_BASE_URL}/orders/addOrder`, {
+                customerName: fullName,
+                customerEmail: email,
+                customerWhatsapp: whatsapp,
+                numberId: number._id,
+                paymentMethod,
+                transactionId,
+            });
+            if (res.data.success) {
+                navigate('orders');
+            }
+        } catch (err) {
+            setSubmitError(err.response?.data?.message || 'Failed to place order. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -572,42 +641,41 @@ const ConfirmOrder = ({ navigate, selectedData }) => {
                         </div>
                     </div>
 
-                    <form className="space-y-5 relative z-10" onSubmit={(e) => { e.preventDefault(); navigate('orders'); }}>
+                    <form className="space-y-5 relative z-10" onSubmit={handleSubmit}>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                            <input required type="text" placeholder="John Doe" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
+                            <input required type="text" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                            <input required type="email" placeholder="john@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
+                            <input required type="email" placeholder="john@example.com" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phone Number (Optional)</label>
-                            <input type="tel" placeholder="+1 234 567 890" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">WhatsApp Number</label>
+                            <input type="tel" placeholder="+92 300 1234567" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Transaction ID</label>
+                            <input type="text" placeholder="829-8028-233" value={transactionId} onChange={e => setTransactionId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Select Your Payment Method</label>
+                            <select required value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all appearance-none cursor-pointer">
+                                <option value="" disabled className="text-gray-600">Choose a payment method</option>
+                                <option value="easypaisa" className="bg-[#111] text-white">Easypaisa</option>
+                                <option value="jazzcash" className="bg-[#111] text-white">JazzCash</option>
+                                <option value="crypto" className="bg-[#111] text-white">Crypto</option>
+                            </select>
                         </div>
 
-                        <div className="space-y-2 pt-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Upload Payment Slip</label>
-                            <div className="relative border-2 border-dashed border-white/20 bg-black/20 rounded-2xl p-8 text-center hover:border-[#ff4da6]/50 hover:bg-[#ff4da6]/5 transition-all duration-300 group cursor-pointer">
-                                <input
-                                    required
-                                    type="file"
-                                    accept=".jpg,.jpeg,.png,.pdf"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={(e) => setFileName(e.target.files[0]?.name)}
-                                />
-                                <div className="pointer-events-none">
-                                    <Upload className="w-8 h-8 text-gray-500 mx-auto mb-3 group-hover:text-[#ff4da6] transition-colors" />
-                                    <p className="text-sm text-gray-300 font-medium mb-1">
-                                        {fileName ? <span className="text-[#ff4da6]">{fileName}</span> : "Click to upload or drag and drop"}
-                                    </p>
-                                    <p className="text-xs text-gray-500">PNG, JPG or PDF (Max 5MB)</p>
-                                </div>
+                        {submitError && (
+                            <div className="text-red-400 text-sm font-bold bg-red-400/10 border border-red-400/20 px-4 py-3 rounded-xl">
+                                {submitError}
                             </div>
-                        </div>
+                        )}
 
-                        <button type="submit" className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold text-lg hover:shadow-[0_0_20px_rgba(255,77,166,0.3)] transform hover:scale-[1.01] transition-all mt-4">
-                            Submit Order
+                        <button type="submit" disabled={submitting} className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold text-lg hover:shadow-[0_0_20px_rgba(255,77,166,0.3)] transform hover:scale-[1.01] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                            {submitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : 'Submit Order'}
                         </button>
                     </form>
                 </div>

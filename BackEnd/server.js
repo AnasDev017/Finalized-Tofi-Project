@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
 import countryRoutes from "./routes/countryRoutes.js";
 import numberRoutes from "./routes/numberRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 configDotenv();
 
@@ -25,6 +26,7 @@ app.get("/", (req, res) => {
 app.use("/countries", countryRoutes);
 app.use("/numbers", numberRoutes);
 app.use("/auth", authRoutes);
+app.use("/orders", orderRoutes);
 
 const PORT = process.env.PORT || 5000;
 
