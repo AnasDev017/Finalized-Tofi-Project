@@ -15,11 +15,11 @@ const OrderSchema = new mongoose.Schema({
   customer: {
     name: {
       type: String,
-      required: true
+      required: false
     },
     email: {
       type: String,
-      required: true
+      required: false
     },
     phone: {
       type: String
@@ -52,7 +52,7 @@ const OrderSchema = new mongoose.Schema({
   payment: {
     method: {
       type: String,
-      enum: ["easypaisa", "jazzcash", "crypto"],
+      enum: ["easypaisa", "jazzcash", "crypto", "wallet"],
       required: true
     },
     transactionId: {

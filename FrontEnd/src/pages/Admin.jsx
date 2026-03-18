@@ -561,22 +561,50 @@ const OrdersView = () => {
 };
 
 const PaymentsView = () => {
-    const [payments, setPayments] = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
     React.useEffect(() => {
-        const fetchPayments = async () => {
-            try {
-                const res = await axios.get(`${API_BASE_URL}/orders/getAllOrders`);
-                if (res.data.success) setPayments(res.data.orders);
-            } catch (err) {
-                console.error('Error fetching payments:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPayments();
+        fetchTransactions();
     }, []);
+
+    const fetchTransactions = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/transactions/admin/all`);
+            if (res.data.success) setTransactions(res.data.transactions);
+        } catch (err) {
+            console.error('Error fetching transactions:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (id, status) => {
+        try {
+            const res = await axios.patch(`${API_BASE_URL}/transactions/admin/update/${id}`, { status });
+            if (res.data.success) {
+                setTransactions(transactions.map(t => t._id === id ? { ...t, status } : t));
+                Swal.fire({
+                    title: 'Updated!',
+                    text: `Transaction has been ${status}.`,
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                    timer: 1500,
+                    showConfirmButton: false,
+                });
+            }
+        } catch (err) {
+            console.error('Error updating transaction:', err);
+            Swal.fire({
+                title: 'Error!',
+                text: err.response?.data?.message || 'Failed to update transaction',
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+            });
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -586,16 +614,8 @@ const PaymentsView = () => {
         }
     };
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'approved': return 'Verified';
-            case 'rejected': return 'Rejected';
-            default: return 'Pending';
-        }
-    };
-
     return (
-        <PageWrapper title="Payment Transactions" description="Track all payments received from customers.">
+        <PageWrapper title="Wallet Transactions" description="Approve or reject wallet deposit requests.">
             {loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
@@ -607,36 +627,54 @@ const PaymentsView = () => {
                             <thead className="bg-black/40 border-b border-white/10">
                                 <tr>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer Name</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Customer</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Method</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
-                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Number / Order</th>
-                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Payment Status</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {payments.length === 0 && (
-                                    <tr><td colSpan="6" className="p-8 text-center text-gray-500">No transactions yet.</td></tr>
+                                {transactions.length === 0 && (
+                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">No transactions yet.</td></tr>
                                 )}
-                                {payments.map(order => (
-                                    <tr key={order._id} className="hover:bg-white/5 transition-colors">
+                                {transactions.map(tx => (
+                                    <tr key={tx._id} className="hover:bg-white/5 transition-colors">
                                         <td className="p-5 text-sm font-mono font-bold text-gray-300">
-                                            {order.payment?.transactionId || <span className="text-gray-600 italic">N/A</span>}
+                                            {tx.transactionId}
                                         </td>
                                         <td className="p-5">
-                                            <div className="text-sm text-white font-medium">{order.customer?.name}</div>
-                                            <div className="text-xs text-gray-500">{order.customer?.email}</div>
+                                            <div className="text-sm text-white font-medium">{tx.user?.name || 'Unknown'}</div>
+                                            <div className="text-xs text-gray-500">{tx.user?.email || 'N/A'}</div>
                                         </td>
-                                        <td className="p-5 text-sm text-gray-400 capitalize">{order.payment?.method}</td>
-                                        <td className="p-5 text-sm font-bold text-white">Rs{order.amount}</td>
+                                        <td className="p-5 text-sm text-gray-400 capitalize">{tx.method}</td>
+                                        <td className="p-5 text-sm font-bold text-white">Rs{tx.amount}</td>
+                                        <td className="p-5 text-sm text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                         <td className="p-5">
-                                            <div className="text-sm font-mono text-gray-300">{order.purchasedNumber}</div>
-                                            <div className="text-[10px] text-gray-500 uppercase">{order.orderId}</div>
+                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border inline-block ${getStatusColor(tx.status)}`}>
+                                                {tx.status}
+                                            </span>
                                         </td>
                                         <td className="p-5 text-right">
-                                            <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border inline-block ${getStatusColor(order.status)}`}>
-                                                {getStatusLabel(order.status)}
-                                            </span>
+                                            {tx.status === 'pending' ? (
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleUpdateStatus(tx._id, 'approved')}
+                                                        className="px-3 py-1.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-all"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleUpdateStatus(tx._id, 'rejected')}
+                                                        className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-all"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-gray-600 italic">Processed</span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -751,7 +789,7 @@ const TicketsView = ({ tickets, setTickets }) => {
 
 // --- Main Admin App Layout ---
 export default function Admin() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isAdmin") === "true");
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -759,14 +797,20 @@ export default function Admin() {
     const [currentPath, setCurrentPath] = useState('numbers');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    // Global State
+    // Dynamic state
     const [numbers, setNumbers] = useState([]);
     const [countries, setCountries] = useState([]);
     const [tickets, setTickets] = useState(INITIAL_TICKETS);
     const [loading, setLoading] = useState(true);
 
-    // Fetch Data from Backend
+    // Initial check & data fetching
     React.useEffect(() => {
+        const isAdmin = localStorage.getItem("isAdmin") === "true";
+        if (!isAdmin) {
+            setIsLoggedIn(false);
+            return;
+        }
+
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -795,16 +839,22 @@ export default function Admin() {
             }
         };
         fetchData();
-    }, []);
+    }, [isLoggedIn]);
 
     const handleLogin = (e) => {
         e.preventDefault();
         if (email === 'tofiwork2@gmail.com' && password === 'Tofi289') {
+            localStorage.setItem("isAdmin", "true");
             setIsLoggedIn(true);
             setError('');
         } else {
             setError('Invalid email or password');
         }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("isAdmin");
+        setIsLoggedIn(false);
     };
 
     const navigate = (path) => {
@@ -916,7 +966,7 @@ export default function Admin() {
 
                 <div className="p-6 border-t border-white/5">
                     <button
-                        onClick={() => setIsLoggedIn(false)}
+                        onClick={handleLogout}
                         className="flex items-center gap-3 w-full px-4 py-3 text-sm font-bold text-gray-400 hover:text-white transition-colors"
                     >
                         <LogOut className="w-5 h-5" /> Sign Out
@@ -968,7 +1018,7 @@ export default function Admin() {
                                 </div>
                                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
                             </div>
-                            <div className="space-y-2 flex-1">
+                            <div className="space-y-2 flex-1 overflow-y-auto">
                                 {navItems.map(item => {
                                     const isActive = currentPath === item.id;
                                     return (
@@ -982,6 +1032,15 @@ export default function Admin() {
                                         </button>
                                     );
                                 })}
+                            </div>
+
+                            <div className="pt-6 border-t border-white/10">
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center gap-4 p-4 rounded-2xl font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+                                >
+                                    <LogOut className="w-5 h-5" /> Sign Out
+                                </button>
                             </div>
                         </motion.div>
                     </>

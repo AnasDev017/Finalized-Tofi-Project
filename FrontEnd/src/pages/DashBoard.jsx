@@ -4,10 +4,13 @@ import {
     Hash, Globe, ShoppingBag, LifeBuoy, User as UserIcon,
     Search, Filter, ChevronRight, Menu, X, CheckCircle,
     Clock, XCircle, Upload, Copy, ShieldCheck, CreditCard,
-    LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap, Loader2
+    LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap, Loader2,
+    Wallet, History, PlusCircle
 } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../api/baseUrl';
+import Swal from 'sweetalert2';
+
 
 // --- External Libraries Loader ---
 const useGSAPLoader = () => {
@@ -62,8 +65,15 @@ const MOCK_USER = {
     email: 'alex.mercer@example.com',
     avatar: 'AM',
     totalOrders: 12,
-    activeNumbers: 3
+    activeNumbers: 3,
+    walletBalance: 1250
 };
+
+const MOCK_TRANSACTIONS = [
+    { id: 'TXN-1023', method: 'Easypaisa', amount: 1000, date: '2026-03-18', status: 'pending' },
+    { id: 'TXN-1022', method: 'JazzCash', amount: 500, date: '2026-03-17', status: 'approved' },
+    { id: 'TXN-1021', method: 'Crypto', amount: 2000, date: '2026-03-16', status: 'rejected' },
+];
 
 // --- GSAP Page Transition Wrapper ---
 const PageWrapper = ({ children, className = "" }) => {
@@ -123,18 +133,25 @@ const CardGlowStyles = () => (
 );
 
 // Number card with CSS-animated glow + mobile-friendly button
-const NumberCard = ({ num, navigate }) => {
+const NumberCard = ({ num, onBuy }) => {
     const [btnPressed, setBtnPressed] = useState(false);
+    const [buying, setBuying] = useState(false);
 
     // Backend data mapping: num.country might be an object or string depending on population
     const countryName = num.country?.name || num.countryName || 'N/A';
     const flagUrl = num.country?.flag || num.flagUrl;
 
+    const handleInternalBuy = async () => {
+        setBuying(true);
+        await onBuy(num._id || num.id);
+        setBuying(false);
+    };
+
     const handleTouchStart = (e) => {
         e.preventDefault();
         setBtnPressed(true);
         setTimeout(() => {
-            navigate('confirm-order', { number: num });
+            onBuy(num._id || num.id);
         }, 150);
     };
 
@@ -185,15 +202,16 @@ const NumberCard = ({ num, navigate }) => {
                     </div>
                 </div>
                 <button
-                    onClick={() => navigate('confirm-order', { number: num })}
+                    onClick={handleInternalBuy}
                     onTouchStart={handleTouchStart}
-                    className="btn-get-number border text-white px-5 py-2.5 rounded-xl text-sm font-bold"
+                    disabled={buying || num.status === 'sold' || num.status === 'Sold'}
+                    className="btn-get-number border text-white px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                     style={btnPressed ? {
                         background: 'linear-gradient(to right, #ff4da6, #9d4edd)',
                         borderColor: 'transparent'
                     } : {}}
                 >
-                    Get Number
+                    {buying ? <Loader2 className="w-4 h-4 animate-spin" /> : (num.status === 'sold' || num.status === 'Sold' ? 'Sold' : 'Buy Now')}
                 </button>
             </div>
         </div>
@@ -201,7 +219,7 @@ const NumberCard = ({ num, navigate }) => {
 };
 
 // 1. Virtual Numbers Page
-const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) => {
+const VirtualNumbers = ({ onBuy, preSelectedCountry, numbers, countries }) => {
     const [search, setSearch] = useState('');
     const [filterCountry, setFilterCountry] = useState(preSelectedCountry || 'all');
     const [sortBy, setSortBy] = useState('price-asc');
@@ -270,7 +288,7 @@ const VirtualNumbers = ({ navigate, preSelectedCountry, numbers, countries }) =>
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredNumbers.map((num) => (
-                    <NumberCard key={num._id || num.id} num={num} navigate={navigate} />
+                    <NumberCard key={num._id || num.id} num={num} onBuy={onBuy} />
                 ))}
             </div>
             {filteredNumbers.length === 0 && (
@@ -559,226 +577,10 @@ const Account = () => {
     );
 };
 
-// 6. Confirm Order Page
-const ConfirmOrder = ({ navigate, selectedData }) => {
-    const number = selectedData?.number;
-    const [copiedName, setCopiedName] = useState(false);
-    const [copiedNumber, setCopiedNumber] = useState(false);
 
-    // Form state
-    const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
-    const [whatsapp, setWhatsapp] = useState('');
-    const [transactionId, setTransactionId] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [submitError, setSubmitError] = useState('');
-
-    if (!number) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <h2 className="text-2xl text-white font-bold mb-4">No number selected</h2>
-                <button onClick={() => navigate('numbers')} className="text-[#ff4da6] hover:underline">Go back to numbers</button>
-            </div>
-        );
-    }
-
-    const copyToClipboard = (text, type) => {
-        navigator.clipboard.writeText(text);
-        if (type === 'name') { setCopiedName(true); setTimeout(() => setCopiedName(false), 2000); }
-        if (type === 'number') { setCopiedNumber(true); setTimeout(() => setCopiedNumber(false), 2000); }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!paymentMethod) { setSubmitError('Please select a payment method.'); return; }
-        setSubmitting(true);
-        setSubmitError('');
-        try {
-            const token = localStorage.getItem("userToken");
-            const res = await axios.post(`${API_BASE_URL}/orders/addOrder`, {
-                customerName: fullName,
-                customerEmail: email,
-                customerWhatsapp: whatsapp,
-                numberId: number._id,
-                paymentMethod,
-                transactionId,
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (res.data.success) {
-                navigate('orders');
-            }
-        } catch (err) {
-            setSubmitError(err.response?.data?.message || 'Failed to place order. Please try again.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <PageWrapper>
-            <button
-                onClick={() => navigate('numbers')}
-                className="mb-8 text-gray-500 hover:text-white transition-colors text-sm font-medium flex items-center gap-2 group w-fit"
-            >
-                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Numbers
-            </button>
-
-            <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Confirm Your Order</h1>
-                <p className="text-gray-400">Complete payment and upload your slip to activate <span className="text-[#ff4da6] font-mono">{number.number}</span>.</p>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-8 items-start">
-                {/* Left: Form */}
-                <div className="bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#ff4da6]/5 to-[#9d4edd]/5 rounded-full blur-3xl pointer-events-none" />
-
-                    <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-2xl mb-8 relative z-10">
-                        <div className="flex items-center gap-3">
-                            {(number.country?.flag || number.flagUrl) && <img src={number.country?.flag || number.flagUrl} alt={number.country?.name || number.countryName} className="w-8 h-auto rounded-sm shadow-sm" />}
-                            <div>
-                                <div className="text-sm text-gray-400">{number.country?.name || number.countryName}</div>
-                                <div className="text-lg font-mono text-white font-bold">{number.number}</div>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-xs text-gray-500 uppercase tracking-widest font-bold">Total</div>
-                            <div className="text-xl text-[#ff4da6] font-bold">Rs{number.price}</div>
-                        </div>
-                    </div>
-
-                    <form className="space-y-5 relative z-10" onSubmit={handleSubmit}>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
-                            <input required type="text" placeholder="John Doe" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                            <input required type="email" placeholder="john@example.com" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">WhatsApp Number</label>
-                            <input type="tel" placeholder="+92 300 1234567" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Transaction ID</label>
-                            <input type="text" placeholder="829-8028-233" value={transactionId} onChange={e => setTransactionId(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Select Your Payment Method</label>
-                            <select required value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all appearance-none cursor-pointer">
-                                <option value="" disabled className="text-gray-600">Choose a payment method</option>
-                                <option value="easypaisa" className="bg-[#111] text-white">Easypaisa</option>
-                                <option value="jazzcash" className="bg-[#111] text-white">JazzCash</option>
-                                <option value="crypto" className="bg-[#111] text-white">Crypto</option>
-                            </select>
-                        </div>
-
-                        {submitError && (
-                            <div className="text-red-400 text-sm font-bold bg-red-400/10 border border-red-400/20 px-4 py-3 rounded-xl">
-                                {submitError}
-                            </div>
-                        )}
-
-                        <button type="submit" disabled={submitting} className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold text-lg hover:shadow-[0_0_20px_rgba(255,77,166,0.3)] transform hover:scale-[1.01] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                            {submitting ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : 'Submit Order'}
-                        </button>
-                    </form>
-                </div>
-
-                {/* Right: Payment Instructions */}
-                <div className="space-y-6">
-                    <div className="bg-[#111] border border-white/10 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-[#ff4da6]/5 blur-3xl rounded-full pointer-events-none" />
-
-                        <div className="flex items-center gap-3 mb-6 relative z-10">
-                            <div className="w-10 h-10 rounded-full bg-[#ff4da6]/10 flex items-center justify-center border border-[#ff4da6]/20">
-                                <CreditCard className="w-5 h-5 text-[#ff4da6]" />
-                            </div>
-                            <h2 className="text-xl font-bold text-white">Complete Your Payment</h2>
-                        </div>
-
-                        <p className="text-sm text-gray-400 mb-8 leading-relaxed relative z-10">
-                            Send the payment of <strong className="text-white">Rs{number.price}</strong> using one of the methods below. Upload your payment slip to confirm your order.
-                        </p>
-
-                        <div className="space-y-5 relative z-10">
-                            {/* Payment Method 1 */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-white font-bold flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-[#10b981]" /> Easypaisa
-                                    </h3>
-                                </div>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center bg-black/60 p-3 rounded-lg border border-white/5">
-                                        <div>
-                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider block mb-0.5">Account Name</span>
-                                            <span className="text-white font-medium">Tofi Studio</span>
-                                        </div>
-                                        <button onClick={() => copyToClipboard('Tofi Studio', 'name')} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all">
-                                            {copiedName ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-black/60 p-3 rounded-lg border border-white/5">
-                                        <div>
-                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider block mb-0.5">Account Number</span>
-                                            <span className="text-white font-medium font-mono">0300 1234567</span>
-                                        </div>
-                                        <button onClick={() => copyToClipboard('03001234567', 'number')} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all">
-                                            {copiedNumber ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Payment Method 2 */}
-                            <div className="bg-black/40 rounded-2xl p-5 border border-white/5">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-white font-bold flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-[#ef4444]" /> JazzCash
-                                    </h3>
-                                </div>
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between items-center bg-black/60 p-3 rounded-lg border border-white/5">
-                                        <div>
-                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider block mb-0.5">Account Name</span>
-                                            <span className="text-white font-medium">Tofi Studio Pvt</span>
-                                        </div>
-                                        <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all">
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-black/60 p-3 rounded-lg border border-white/5">
-                                        <div>
-                                            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider block mb-0.5">Account Number</span>
-                                            <span className="text-white font-medium font-mono">0301 7654321</span>
-                                        </div>
-                                        <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-md transition-all">
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 flex items-start gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500/80 text-sm relative z-10">
-                            <Clock className="w-5 h-5 shrink-0 mt-0.5" />
-                            <p>Your order will be marked as <strong className="text-yellow-500">Pending</strong> immediately after submission. Admin will approve it after payment verification.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </PageWrapper>
-    );
-};
 
 // 7. Get OTP's Page
-const GetOTPs = ({ navigate }) => {
+const GetOTPs = ({ onBuy }) => {
     return (
         <PageWrapper>
             <CardGlowStyles />
@@ -846,7 +648,7 @@ const GetOTPs = ({ navigate }) => {
                                 <p className="text-xl font-extrabold text-white">PKR {service.price}</p>
                             </div>
                             <button
-                                onClick={() => navigate('confirm-order', { number: { number: service.number, price: service.price, countryName: service.name, flagUrl: null } })}
+                                onClick={() => onBuy('mock-otp-' + service.id)}
                                 className="btn-get-number border text-white px-5 py-2.5 rounded-xl text-sm font-bold"
                             >
                                 Get OTP
@@ -1016,6 +818,225 @@ const MyActiveNumbers = () => {
     );
 };
 
+// 9. Add Funds Page
+const AddFunds = ({ walletBalance, setWalletBalance, setTransactions }) => {
+    const [method, setMethod] = useState('');
+    const [transactionId, setTransactionId] = useState('');
+    const [amount, setAmount] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [copiedId, setCopiedId] = useState(null);
+
+    const paymentMethods = [
+        { id: 'easypaisa', name: 'Easypaisa', account: '0300 1234567', title: 'Tofi Studio', icon: 'https://img.icons8.com/color/48/000000/easypaisa.png' },
+        { id: 'jazzcash', name: 'JazzCash', account: '0301 7654321', title: 'Tofi Studio Pvt', icon: 'https://img.icons8.com/color/48/000000/jazzcash.png' },
+        { id: 'nayapay', name: 'NayaPay', account: '0310 9876543', title: 'Alex Mercer', icon: 'https://img.icons8.com/fluency/48/000000/bank-card-back-side.png' },
+        { id: 'crypto', name: 'Crypto (USDT)', account: '0x1234...abcd', title: 'ERC20 / TRC20', icon: 'https://img.icons8.com/color/48/000000/tether.png' },
+    ];
+
+    const handleCopy = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!method) return;
+        setSubmitting(true);
+
+        try {
+            const token = localStorage.getItem("userToken");
+            const res = await axios.post(`${API_BASE_URL}/transactions/deposit`, {
+                method,
+                amount: parseFloat(amount),
+                transactionId
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                setTransactions(prev => [res.data.txn, ...prev]);
+                setTransactionId('');
+                setAmount('');
+                setMethod('');
+                Swal.fire({
+                    title: 'Submitted!',
+                    text: 'Deposit request submitted successfully! Admin will approve it after verification.',
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                });
+            }
+        } catch (error) {
+            console.error("Deposit error:", error);
+            Swal.fire({
+                title: 'Error!',
+                text: error.response?.data?.message || 'Failed to submit deposit',
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <PageWrapper>
+            <div className="mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Add Funds</h1>
+                <p className="text-gray-400">Select a payment method and submit your transaction details.</p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8 items-start">
+                {/* Payment Methods Section */}
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <CreditCard className="w-5 h-5 text-[#ff4da6]" /> Available Methods
+                    </h2>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        {paymentMethods.map((pm) => (
+                            <div key={pm.id} className="bg-[#111] border border-white/5 hover:border-[#ff4da6]/30 rounded-2xl p-5 transition-all group relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-[#ff4da6]/5 blur-2xl rounded-full pointer-events-none" />
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center p-2">
+                                        <img src={pm.icon} alt={pm.name} className="w-full h-full object-contain" />
+                                    </div>
+                                    <h3 className="text-white font-bold">{pm.name}</h3>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500 uppercase font-bold tracking-wider">Account</span>
+                                        <button onClick={() => handleCopy(pm.account, pm.id)} className="text-[#ff4da6] hover:text-[#9d4edd] transition-colors">
+                                            {copiedId === pm.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
+                                    <p className="text-white font-mono text-sm truncate">{pm.account}</p>
+                                    <div className="flex justify-between items-center text-xs pt-1">
+                                        <span className="text-gray-500 uppercase font-bold tracking-wider">Title</span>
+                                    </div>
+                                    <p className="text-gray-300 text-sm">{pm.title}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Deposit Form Section */}
+                <div className="bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#ff4da6]/5 to-[#9d4edd]/5 rounded-full blur-3xl pointer-events-none" />
+                    <h2 className="text-2xl font-bold text-white mb-6 relative z-10">Submit Deposit</h2>
+                    <form className="space-y-5 relative z-10" onSubmit={handleSubmit}>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Payment Method</label>
+                            <select
+                                required
+                                value={method}
+                                onChange={(e) => setMethod(e.target.value)}
+                                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled>Select Method</option>
+                                <option value="easypaisa">Easypaisa</option>
+                                <option value="jazzcash">JazzCash</option>
+                                <option value="nayapay">NayaPay</option>
+                                <option value="crypto">Crypto</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Transaction ID</label>
+                            <input
+                                required
+                                type="text"
+                                placeholder="Enter Transaction ID"
+                                value={transactionId}
+                                onChange={(e) => setTransactionId(e.target.value)}
+                                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Amount (PKR)</label>
+                            <input
+                                required
+                                type="number"
+                                placeholder="Min: 100"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold text-lg hover:shadow-[0_0_20px_rgba(255,77,166,0.3)] transform hover:scale-[1.01] transition-all mt-4 flex items-center justify-center gap-2 disabled:opacity-70"
+                        >
+                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><PlusCircle className="w-5 h-5" /> Add Funds</>}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </PageWrapper>
+    );
+};
+
+// 10. Payment History Page
+const PaymentHistory = ({ transactions }) => {
+    const getStatusConfig = (status) => {
+        switch (status.toLowerCase()) {
+            case 'approved': return { color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20', icon: CheckCircle };
+            case 'pending': return { color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', icon: Clock };
+            case 'rejected': return { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', icon: XCircle };
+            default: return { color: 'text-gray-400', bg: 'bg-gray-400/10', border: 'border-gray-400/20', icon: Clock };
+        }
+    };
+
+    return (
+        <PageWrapper>
+            <div className="mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Payment History</h1>
+                <p className="text-gray-400">View all your deposit requests and their statuses.</p>
+            </div>
+
+            <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px]">
+                        <thead>
+                            <tr className="bg-black/40 border-b border-white/10">
+                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Transaction ID</th>
+                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Method</th>
+                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Amount</th>
+                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Date</th>
+                                <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {transactions.length === 0 && (
+                                <tr><td colSpan="5" className="p-8 text-center text-gray-500">No transactions found.</td></tr>
+                            )}
+                            {transactions.map((tx) => {
+                                const statusConfig = getStatusConfig(tx.status);
+                                const StatusIcon = statusConfig.icon;
+                                return (
+                                    <tr key={tx._id || tx.id} className="hover:bg-white/[0.02] transition-colors group">
+                                        <td className="p-5 text-sm font-medium text-gray-300 whitespace-nowrap">{tx.transactionId || tx.id}</td>
+                                        <td className="p-5 text-sm text-white group-hover:text-[#ff4da6] transition-colors whitespace-nowrap capitalize">{tx.method}</td>
+                                        <td className="p-5 text-sm text-white font-medium whitespace-nowrap">Rs {tx.amount}</td>
+                                        <td className="p-5 text-sm text-gray-400 whitespace-nowrap">{new Date(tx.createdAt || tx.date).toLocaleDateString()}</td>
+                                        <td className="p-5 whitespace-nowrap">
+                                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                                                <StatusIcon className="w-3.5 h-3.5" /> {tx.status}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </PageWrapper>
+    );
+};
+
 // --- Layout & Main App ---
 
 export default function App() {
@@ -1029,14 +1050,21 @@ export default function App() {
     const [countries, setCountries] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Wallet State (Mock/Real)
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [transactions, setTransactions] = useState([]);
+
     // Fetch Data from Backend
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [countriesRes, numbersRes] = await Promise.all([
+                const token = localStorage.getItem("userToken");
+                const [countriesRes, numbersRes, balanceRes, transactionsRes] = await Promise.all([
                     axios.get(`${API_BASE_URL}/countries/getAllCountries`),
-                    axios.get(`${API_BASE_URL}/numbers/getAllNumbers`)
+                    axios.get(`${API_BASE_URL}/numbers/getAllNumbers`),
+                    axios.get(`${API_BASE_URL}/transactions/balance`, { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get(`${API_BASE_URL}/transactions/my-transactions`, { headers: { Authorization: `Bearer ${token}` } })
                 ]);
 
                 if (countriesRes.data.success) {
@@ -1044,6 +1072,12 @@ export default function App() {
                 }
                 if (numbersRes.data.success) {
                     setNumbers(numbersRes.data.numbers);
+                }
+                if (balanceRes.data.success) {
+                    setWalletBalance(balanceRes.data.balance);
+                }
+                if (transactionsRes.data.success) {
+                    setTransactions(transactionsRes.data.transactions);
                 }
             } catch (error) {
                 console.error("Error fetching dashboard data:", error);
@@ -1053,6 +1087,42 @@ export default function App() {
         };
         fetchData();
     }, []);
+
+    const handleBuy = async (numberId) => {
+        try {
+            const token = localStorage.getItem("userToken");
+            const res = await axios.post(`${API_BASE_URL}/orders/buy`, { numberId }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                // Update local balance
+                if (res.data.newBalance !== undefined) {
+                    setWalletBalance(res.data.newBalance);
+                }
+
+                // Mark number as sold in local state
+                setNumbers(prev => prev.map(n => (n._id === numberId || n.id === numberId) ? { ...n, status: 'sold' } : n));
+
+                Swal.fire({
+                    title: 'Purchased!',
+                    text: 'Number purchased successfully! You can view it in your dashboard.',
+                    icon: 'success',
+                    background: '#111',
+                    color: '#fff',
+                });
+            }
+        } catch (error) {
+            console.error("Purchase error:", error);
+            Swal.fire({
+                title: 'Purchase Failed',
+                text: error.response?.data?.message || 'Error occurred during purchase.',
+                icon: 'error',
+                background: '#111',
+                color: '#fff',
+            });
+        }
+    };
 
     // Router logic
     const navigate = (path, data = null) => {
@@ -1066,6 +1136,8 @@ export default function App() {
         { id: 'numbers', label: 'Virtual Numbers', icon: Hash },
         { id: 'countries', label: 'Countries', icon: Globe },
         { id: 'orders', label: 'My Orders', icon: ShoppingBag },
+        { id: 'add-funds', label: 'Add Funds', icon: Wallet },
+        { id: 'history', label: 'Payment History', icon: History },
         { id: 'otp', label: "Get OTP's", icon: ShieldCheck },
         { id: 'active', label: 'My Numbers', icon: Smartphone },
         { id: 'support', label: 'Support', icon: LifeBuoy },
@@ -1095,7 +1167,7 @@ export default function App() {
                 <nav className="flex-1 px-4 space-y-2 mt-4">
                     {navItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = currentPath === item.id || (currentPath === 'confirm-order' && item.id === 'numbers');
+                        const isActive = currentPath === item.id;
                         return (
                             <button
                                 key={item.id}
@@ -1140,9 +1212,32 @@ export default function App() {
                         </div>
                         <span className="text-lg font-bold">Tofi Studio</span>
                     </div>
-                    <button onClick={() => setMobileMenuOpen(true)} className="p-2 text-white">
-                        <Menu className="w-6 h-6" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-r from-[#ff4da6]/10 to-[#9d4edd]/10 border border-[#ff4da6]/20 rounded-full px-3 py-1.5 flex items-center gap-2 shadow-[0_0_15px_rgba(255,77,166,0.1)]">
+                            <Wallet className="w-3.5 h-3.5 text-[#ff4da6]" />
+                            <span className="text-xs font-bold text-white">Rs {walletBalance}</span>
+                        </div>
+                        <button onClick={() => setMobileMenuOpen(true)} className="p-1 text-white">
+                            <Menu className="w-6 h-6" />
+                        </button>
+                    </div>
+                </header>
+
+                {/* Desktop Top Navbar (Wallet Balance Only) */}
+                <header className="hidden lg:flex items-center justify-end p-6 bg-transparent sticky top-0 z-40">
+                    <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl px-5 py-2.5 flex items-center gap-4 shadow-2xl">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest leading-none mb-1">Total Balance</span>
+                            <span className="text-lg font-bold text-white leading-none">Rs {walletBalance}</span>
+                        </div>
+                        <div className="w-px h-8 bg-white/10 mx-1" />
+                        <button
+                            onClick={() => navigate('add-funds')}
+                            className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] flex items-center justify-center text-white shadow-[0_0_15px_rgba(255,77,166,0.4)] hover:scale-105 transition-transform"
+                        >
+                            <PlusCircle className="w-6 h-6" />
+                        </button>
+                    </div>
                 </header>
 
                 {/* Mobile Sidebar Overlay */}
@@ -1170,7 +1265,7 @@ export default function App() {
                                 <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                                     {navItems.map((item) => {
                                         const Icon = item.icon;
-                                        const isActive = currentPath === item.id || (currentPath === 'confirm-order' && item.id === 'numbers');
+                                        const isActive = currentPath === item.id;
                                         return (
                                             <button
                                                 key={item.id}
@@ -1197,14 +1292,15 @@ export default function App() {
                         </div>
                     ) : (
                         <>
-                            {currentPath === 'numbers' && <VirtualNumbers navigate={navigate} preSelectedCountry={routeData?.countryId} numbers={numbers} countries={countries} />}
+                            {currentPath === 'numbers' && <VirtualNumbers onBuy={handleBuy} preSelectedCountry={routeData?.countryId} numbers={numbers} countries={countries} />}
                             {currentPath === 'countries' && <Countries navigate={navigate} countries={countries} />}
                             {currentPath === 'orders' && <Orders />}
                             {currentPath === 'support' && <Support />}
                             {currentPath === 'account' && <Account />}
-                            {currentPath === 'confirm-order' && <ConfirmOrder navigate={navigate} selectedData={routeData} />}
-                            {currentPath === 'otp' && <GetOTPs navigate={navigate} />}
+                            {currentPath === 'otp' && <GetOTPs onBuy={handleBuy} />}
                             {currentPath === 'active' && <MyActiveNumbers />}
+                            {currentPath === 'add-funds' && <AddFunds walletBalance={walletBalance} setWalletBalance={setWalletBalance} setTransactions={setTransactions} />}
+                            {currentPath === 'history' && <PaymentHistory transactions={transactions} />}
                         </>
                     )}
                 </div>

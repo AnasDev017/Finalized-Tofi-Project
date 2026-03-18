@@ -7,6 +7,8 @@ import authRoutes from "./routes/authRoutes.js";
 import countryRoutes from "./routes/countryRoutes.js";
 import numberRoutes from "./routes/numberRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.js";
+
 
 configDotenv();
 
@@ -27,6 +29,8 @@ app.use("/countries", countryRoutes);
 app.use("/numbers", numberRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
+app.use("/transactions", transactionRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 

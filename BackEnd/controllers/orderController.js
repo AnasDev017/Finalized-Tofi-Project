@@ -1,6 +1,9 @@
 import Order from "../models/orderModel.js";
 import Number from "../models/numberModel.js";
 import Country from "../models/countryModel.js";
+import Wallet from "../models/walletModel.js";
+import User from "../models/userModel.js";
+
 
 // ─── Add Order ────────────────────────────────────────────────────────────────
 export const addOrder = async (req, res) => {
@@ -69,6 +72,94 @@ export const addOrder = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+// ─── Buy Number (Instant Wallet-based) ───────────────────────────────────────
+export const buyNumber = async (req, res) => {
+  try {
+    const { numberId } = req.body;
+    const userId = req.user._id;
+
+    console.log(`[Buy Attempt] User ID: ${userId}, Number ID: ${numberId}`);
+
+    if (!numberId) {
+      return res.status(400).json({ success: false, message: "Missing numberId in request" });
+    }
+
+    // Fetch the number to check price and availability
+    const numberDoc = await Number.findById(numberId).populate("country");
+    if (!numberDoc) {
+      return res.status(404).json({ success: false, message: "Number not found in database" });
+    }
+
+    const currentStatus = (numberDoc.status || "").toLowerCase();
+    if (currentStatus !== "available") {
+      return res.status(400).json({ success: false, message: `Number status is '${numberDoc.status}', not available.` });
+    }
+
+    // Fetch the user's wallet
+    let wallet = await Wallet.findOne({ user: userId });
+    
+    // Auto-create wallet if missing (with 0 balance)
+    if (!wallet) {
+      wallet = new Wallet({ user: userId, balance: 0 });
+      await wallet.save();
+    }
+
+    if (wallet.balance < numberDoc.price) {
+      return res.status(400).json({ success: false, message: `Insufficient balance! Needed: Rs${numberDoc.price}, Have: Rs${wallet.balance}` });
+    }
+
+    // Deduct the balance
+    wallet.balance -= numberDoc.price;
+    await wallet.save();
+
+    // Mark the number as sold
+    numberDoc.status = "sold";
+    await numberDoc.save();
+
+    // Fetch user details for the order record (name/email)
+    const user = await User.findById(userId);
+
+    // Generate unique Order ID
+    const orderId = "ORD-" + Math.floor(1000 + Math.random() * 9000);
+
+    // Create the order with status "approved"
+    const order = new Order({
+      orderId,
+      user: userId,
+      customer: {
+        name: user?.name || "User",
+        email: user?.email || "N/A",
+        phone: "",
+        whatsapp: ""
+      },
+      number: numberDoc._id,
+      country: numberDoc.country?._id || null,
+      purchasedNumber: numberDoc.number,
+      payment: {
+        method: "wallet",
+        transactionId: `WAL-${Date.now()}`
+      },
+      amount: numberDoc.price,
+      status: "approved"
+    });
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Number purchased successfully!",
+      order,
+      newBalance: wallet.balance
+    });
+
+  } catch (error) {
+    console.error("Error buying number:", error);
+    res.status(500).json({ success: false, message: "Internal server error: " + error.message });
+  }
+};
+
+
 
 // ─── Get My Orders (Logged-in user only) ─────────────────────────────────────
 export const getMyOrders = async (req, res) => {
