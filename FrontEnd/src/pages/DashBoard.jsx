@@ -826,11 +826,22 @@ const AddFunds = ({ walletBalance, setWalletBalance, setTransactions }) => {
     const [submitting, setSubmitting] = useState(false);
     const [copiedId, setCopiedId] = useState(null);
 
+    useEffect(() => {
+        Swal.fire({
+            title: "Payment Info",
+            text: "If your payment is not added within 20 minutes, please contact support via WhatsApp at 780789279.",
+            icon: "info",
+            background: "#111",
+            color: "#fff",
+            confirmButtonColor: "#ff4da6",
+        });
+    }, []);
+
     const paymentMethods = [
-        { id: 'easypaisa', name: 'Easypaisa', account: '0300 1234567', title: 'Tofi Studio', icon: 'https://img.icons8.com/color/48/000000/easypaisa.png' },
-        { id: 'jazzcash', name: 'JazzCash', account: '0301 7654321', title: 'Tofi Studio Pvt', icon: 'https://img.icons8.com/color/48/000000/jazzcash.png' },
-        { id: 'nayapay', name: 'NayaPay', account: '0310 9876543', title: 'Alex Mercer', icon: 'https://img.icons8.com/fluency/48/000000/bank-card-back-side.png' },
-        { id: 'crypto', name: 'Crypto (USDT)', account: '0x1234...abcd', title: 'ERC20 / TRC20', icon: 'https://img.icons8.com/color/48/000000/tether.png' },
+        { id: 'easypaisa', name: 'Easypaisa', account: '0300 1234567', title: 'Tofi Studio', icon: 'https://icon2.cleanpng.com/lnd/20250110/er/acded9d6362d497965c18a071cb9fd.webp' },
+        { id: 'jazzcash', name: 'JazzCash', account: '0301 7654321', title: 'Tofi Studio Pvt', icon: 'https://play-lh.googleusercontent.com/uG93WUUyYVhe-B-5hBqKhr1X--UvgiICOFgD9rK4dbYG3TdqXKjq_TsJU7Pg034dOA=w240-h480-rw' },
+        { id: 'nayapay', name: 'NayaPay', account: '0310 9876543', title: 'Alex Mercer', icon: 'https://play-lh.googleusercontent.com/OaLId--7-ubuipOHiNGR4N-EpFVg9wIGYIw6trOt5tOFKcjvcxdpsuEDfYcWLWJTUx4' },
+        { id: 'crypto', name: 'Crypto (USDT)', account: '0x1234...abcd', title: 'ERC20 / TRC20', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2cQbJSNv4fI-SWqstYLsPgh8LrkNycKw6xA&s' },
     ];
 
     const handleCopy = (text, id) => {
@@ -958,7 +969,7 @@ const AddFunds = ({ walletBalance, setWalletBalance, setTransactions }) => {
                             <input
                                 required
                                 type="number"
-                                placeholder="Min: 100"
+                                placeholder="Less then 50 will be Rejected for Approval"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all"
@@ -1089,6 +1100,20 @@ export default function App() {
     }, []);
 
     const handleBuy = async (numberId) => {
+        const result = await Swal.fire({
+            title: "Confirm Purchase",
+            text: "Are you sure you want to buy this number? This action is non-refundable.",
+            icon: "warning",
+            background: "#111",
+            color: "#fff",
+            showCancelButton: true,
+            confirmButtonColor: "#ff4da6",
+            cancelButtonColor: "#555",
+            confirmButtonText: "Yes, Buy Now",
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             const token = localStorage.getItem("userToken");
             const res = await axios.post(`${API_BASE_URL}/orders/buy`, { numberId }, {
@@ -1105,11 +1130,13 @@ export default function App() {
                 setNumbers(prev => prev.map(n => (n._id === numberId || n.id === numberId) ? { ...n, status: 'sold' } : n));
 
                 Swal.fire({
-                    title: 'Purchased!',
-                    text: 'Number purchased successfully! You can view it in your dashboard.',
-                    icon: 'success',
-                    background: '#111',
-                    color: '#fff',
+                    title: "Success!",
+                    text: "Number purchased successfully.",
+                    icon: "success",
+                    background: "#111",
+                    color: "#fff",
+                    timer: 1500,
+                    showConfirmButton: false
                 });
             }
         } catch (error) {
@@ -1122,6 +1149,12 @@ export default function App() {
                 color: '#fff',
             });
         }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("isAdmin");
+        localStorage.removeItem("userToken");
+        window.location.href = "/signin";
     };
 
     // Router logic
@@ -1188,16 +1221,14 @@ export default function App() {
                     })}
                 </nav>
 
-                <div className="p-6">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center font-bold">
-                            {MOCK_USER.avatar}
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-bold truncate">{MOCK_USER.name}</p>
-                            <p className="text-xs text-gray-500 truncate">Pro Member</p>
-                        </div>
-                    </div>
+                <div className="p-6 border-t border-white/5">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-asll duration-300 group"
+                    >
+                        <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span>Sign Out</span>
+                    </button>
                 </div>
             </aside>
 
@@ -1278,6 +1309,14 @@ export default function App() {
                                         );
                                     })}
                                 </nav>
+                                <div className="p-6 border-t border-white/10">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-4 px-4 py-4 rounded-xl text-base font-bold text-red-400 hover:bg-red-400/5 transition-all"
+                                    >
+                                        <LogOut className="w-6 h-6" /> Sign Out
+                                    </button>
+                                </div>
                             </motion.aside>
                         </>
                     )}

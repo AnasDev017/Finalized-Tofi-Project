@@ -453,33 +453,7 @@ const OrdersView = () => {
         fetchOrders();
     }, []);
 
-    const handleStatusChange = async (id, newStatus) => {
-        try {
-            const res = await axios.patch(`${API_BASE_URL}/orders/updateOrder/${id}`, { status: newStatus });
-            if (res.data.success) {
-                setOrders(orders.map(o => o._id === id ? { ...o, status: newStatus } : o));
-                Swal.fire({
-                    title: `Order ${newStatus}!`,
-                    icon: 'success',
-                    background: '#111',
-                    color: '#fff',
-                    timer: 1200,
-                    showConfirmButton: false,
-                    customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
-                });
-            }
-        } catch (err) {
-            console.error('Error updating order:', err);
-            Swal.fire({
-                title: 'Error!',
-                text: err.response?.data?.message || 'Failed to update order.',
-                icon: 'error',
-                background: '#111',
-                color: '#fff',
-                customClass: { popup: 'rounded-2xl border border-white/10 shadow-2xl' }
-            });
-        }
-    };
+
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -507,12 +481,11 @@ const OrdersView = () => {
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Date</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {orders.length === 0 && (
-                                    <tr><td colSpan="7" className="p-8 text-center text-gray-500">No orders yet.</td></tr>
+                                    <tr><td colSpan="6" className="p-8 text-center text-gray-500">No orders yet.</td></tr>
                                 )}
                                 {orders.map(order => (
                                     <tr key={order._id} className="hover:bg-white/5 transition-colors group">
@@ -537,17 +510,6 @@ const OrdersView = () => {
                                             <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border ${getStatusColor(order.status)}`}>
                                                 {order.status}
                                             </span>
-                                        </td>
-                                        <td className="p-5 text-right">
-                                            <select
-                                                value={order.status}
-                                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                                className="bg-[#161616] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-[#ff4da6]/50 cursor-pointer"
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="approved">Approved</option>
-                                                <option value="rejected">Rejected</option>
-                                            </select>
                                         </td>
                                     </tr>
                                 ))}
