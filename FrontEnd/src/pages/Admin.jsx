@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Hash, Globe, ShoppingBag, CreditCard, Ticket,
     Menu, X, Trash2, CheckCircle, Plus, Search,
-    Settings, LogOut, MessageSquare, Loader2
+    Settings, LogOut, MessageSquare, Loader2, KeyRound, Send
 } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../api/baseUrl.js';
@@ -749,6 +749,126 @@ const TicketsView = ({ tickets, setTickets }) => {
     );
 };
 
+// --- Manage OTPs View ---
+const ManageOTPsView = () => {
+    const [soldNumbers, setSoldNumbers] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [otpInputs, setOtpInputs] = React.useState({});
+    const [sending, setSending] = React.useState({});
+
+    React.useEffect(() => {
+        const fetchSoldNumbers = async () => {
+            try {
+                const res = await axios.get(`${API_BASE_URL}/admin/numbers/sold`);
+                if (res.data.success) {
+                    setSoldNumbers(res.data.numbers);
+                    const initOtps = {};
+                    res.data.numbers.forEach(n => { initOtps[n._id] = n.otp?.code || ''; });
+                    setOtpInputs(initOtps);
+                }
+            } catch (err) {
+                console.error('Error fetching sold numbers:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSoldNumbers();
+    }, []);
+
+    const handleSendOtp = async (numberId) => {
+        const otp = otpInputs[numberId]?.trim();
+        if (!otp) {
+            Swal.fire({ title: 'Enter OTP', text: 'Please type an OTP code first.', icon: 'warning', background: '#111', color: '#fff', customClass: { popup: 'rounded-2xl border border-white/10' } });
+            return;
+        }
+        setSending(prev => ({ ...prev, [numberId]: true }));
+        try {
+            const res = await axios.post(`${API_BASE_URL}/admin/numbers/send-otp`, { numberId, otp });
+            if (res.data.success) {
+                setSoldNumbers(prev => prev.map(n => n._id === numberId ? { ...n, otp: res.data.otp } : n));
+                Swal.fire({ title: 'OTP Sent!', text: 'OTP has been saved to the number.', icon: 'success', background: '#111', color: '#fff', timer: 1500, showConfirmButton: false, customClass: { popup: 'rounded-2xl border border-white/10' } });
+            }
+        } catch (err) {
+            Swal.fire({ title: 'Error!', text: err.response?.data?.message || 'Failed to send OTP', icon: 'error', background: '#111', color: '#fff', customClass: { popup: 'rounded-2xl border border-white/10' } });
+        } finally {
+            setSending(prev => ({ ...prev, [numberId]: false }));
+        }
+    };
+
+    return (
+        <PageWrapper title="Manage OTPs" description="Send OTP codes to users with purchased virtual numbers.">
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
+                </div>
+            ) : soldNumbers.length === 0 ? (
+                <div className="py-20 text-center text-gray-500 font-medium">
+                    <KeyRound className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                    No sold numbers found. Numbers purchased by users will appear here.
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {soldNumbers.map(num => (
+                        <motion.div
+                            key={num._id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#111] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col gap-4"
+                        >
+                            {/* Number & Country */}
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="font-mono text-lg font-bold text-white">{num.number}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{num.country?.name || '—'}</p>
+                                </div>
+                                <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-red-500/10 text-red-400 border border-red-500/20">Sold</span>
+                            </div>
+
+                            {/* Buyer info */}
+                            <div className="bg-black/40 border border-white/5 rounded-xl p-3">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Buyer</p>
+                                <p className="text-sm font-semibold text-white">{num.user?.name || 'Unknown'}</p>
+                                <p className="text-xs text-gray-400">{num.user?.email || 'N/A'}</p>
+                            </div>
+
+                            {/* Current OTP */}
+                            {num.otp?.code && (
+                                <div className="bg-[#ff4da6]/5 border border-[#ff4da6]/20 rounded-xl p-3 flex items-center gap-3">
+                                    <KeyRound className="w-4 h-4 text-[#ff4da6] flex-shrink-0" />
+                                    <div>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-widest">Current OTP</p>
+                                        <p className="font-mono font-bold text-[#ff4da6] text-lg tracking-widest">{num.otp.code}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* OTP Input + Send Button */}
+                            <div className="flex gap-2 mt-auto">
+                                <input
+                                    type="text"
+                                    maxLength={10}
+                                    placeholder="Enter OTP code"
+                                    value={otpInputs[num._id] || ''}
+                                    onChange={e => setOtpInputs(prev => ({ ...prev, [num._id]: e.target.value }))}
+                                    className="flex-1 bg-[#161616] border border-white/10 rounded-xl py-2.5 px-4 text-white font-mono text-sm focus:outline-none focus:border-[#ff4da6]/50 transition-all"
+                                />
+                                <button
+                                    onClick={() => handleSendOtp(num._id)}
+                                    disabled={sending[num._id]}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-[#ff4da6] hover:bg-[#ff4da6]/90 text-white font-bold rounded-xl transition-all shadow-lg shadow-[#ff4da6]/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    {sending[num._id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                    Send
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )}
+        </PageWrapper>
+    );
+};
+
 // --- Main Admin App Layout ---
 export default function Admin() {
     const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isAdmin") === "true");
@@ -830,6 +950,7 @@ export default function Admin() {
         { id: 'orders', label: 'Orders', icon: ShoppingBag },
         { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'tickets', label: 'Tickets', icon: Ticket },
+        { id: 'otps', label: 'Manage OTPs', icon: KeyRound },
     ];
 
     if (!isLoggedIn) {
@@ -955,6 +1076,7 @@ export default function Admin() {
                         {currentPath === 'orders' && <OrdersView key="orders" />}
                         {currentPath === 'payments' && <PaymentsView key="payments" />}
                         {currentPath === 'tickets' && <TicketsView key="tickets" tickets={tickets} setTickets={setTickets} />}
+                        {currentPath === 'otps' && <ManageOTPsView key="otps" />}
                     </AnimatePresence>
                 </main>
             </div>

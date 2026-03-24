@@ -113,8 +113,9 @@ export const buyNumber = async (req, res) => {
     wallet.balance -= numberDoc.price;
     await wallet.save();
 
-    // Mark the number as sold
+    // Mark the number as sold and link to buyer
     numberDoc.status = "sold";
+    numberDoc.user = userId;
     await numberDoc.save();
 
     // Fetch user details for the order record (name/email)

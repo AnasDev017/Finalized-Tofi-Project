@@ -72,6 +72,14 @@ export const updateTransactionStatus = async (req, res) => {
 
       wallet.balance += txn.amount;
       await wallet.save();
+
+      // Emit live wallet update
+      if (global.io) {
+        global.io.to(txn.user.toString()).emit("walletUpdated", {
+          balance: wallet.balance
+        });
+        console.log(`Socket emit: walletUpdated sent to user ${txn.user} with balance ${wallet.balance}`);
+      }
     }
 
     res.json({ success: true, message: "Transaction updated", txn });

@@ -10,6 +10,9 @@ import {
 import axios from 'axios';
 import API_BASE_URL from '../api/baseUrl';
 import Swal from 'sweetalert2';
+import { io } from "socket.io-client";
+
+const socket = io(API_BASE_URL);
 
 
 // --- External Libraries Loader ---
@@ -663,7 +666,7 @@ const GetOTPs = ({ onBuy }) => {
 
 // 8. My Active Numbers Page
 const MyActiveNumbers = () => {
-    const [orders, setOrders] = useState([]);
+    const [myNumbers, setMyNumbers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [copiedOtp, setCopiedOtp] = useState(null);
 
@@ -671,23 +674,45 @@ const MyActiveNumbers = () => {
         const fetchActiveNumbers = async () => {
             try {
                 const token = localStorage.getItem("userToken");
-                const res = await axios.get(`${API_BASE_URL}/orders/getMyOrders`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                const res = await axios.get(`${API_BASE_URL}/user/my-numbers`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.data.success) {
-                    // Filter for approved orders
-                    const active = res.data.orders.filter(o => o.status === 'approved');
-                    setOrders(active);
+                    setMyNumbers(res.data.numbers);
                 }
             } catch (err) {
-                console.error('Error fetching active numbers:', err);
+                console.error('Error fetching my numbers:', err);
             } finally {
                 setLoading(false);
             }
         };
         fetchActiveNumbers();
+
+        // Socket listener for real-time OTP
+        socket.on("otpReceived", (data) => {
+            setMyNumbers(prev =>
+                prev.map(n =>
+                    n._id === data.numberId
+                        ? { ...n, otp: { code: data.otp } }
+                        : n
+                )
+            );
+            Swal.fire({
+                title: 'OTP Received!',
+                text: `New OTP for number ${data.numberId} has arrived.`,
+                icon: 'info',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                background: '#111',
+                color: '#fff'
+            });
+        });
+
+        return () => {
+            socket.off("otpReceived");
+        };
     }, []);
 
     const handleCopyOtp = (id, otp) => {
@@ -702,21 +727,21 @@ const MyActiveNumbers = () => {
             <CardGlowStyles />
             <div className="mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">My Active Numbers</h1>
-                <p className="text-gray-400">Numbers approved by admin appear here with incoming OTP codes.</p>
+                <p className="text-gray-400">Your purchased numbers — OTP codes sent by admin will appear here automatically.</p>
             </div>
 
             {loading ? (
                 <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-8 h-8 animate-spin text-[#ff4da6]" />
                 </div>
-            ) : orders.length === 0 ? (
+            ) : myNumbers.length === 0 ? (
                 <div className="text-center py-20 text-gray-500">
                     <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-40" />
                     <p>No active numbers yet. Purchase a number to get started.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {orders.map((item, idx) => (
+                    {myNumbers.map((item, idx) => (
                         <motion.div
                             key={item._id}
                             initial={{ opacity: 0, y: 24 }}
@@ -752,23 +777,23 @@ const MyActiveNumbers = () => {
                                 <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-bold mb-2">Number</p>
                                 <div className="relative">
                                     <p className="text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                                        {item.purchasedNumber}
+                                        {item.number}
                                     </p>
                                     <p className="card-glow-overlay absolute inset-0 text-[1.45rem] font-mono font-semibold tracking-widest whitespace-nowrap bg-clip-text text-transparent bg-gradient-to-r from-[#ff4da6] to-[#9d4edd]">
-                                        {item.purchasedNumber}
+                                        {item.number}
                                     </p>
                                 </div>
                             </div>
 
-                            {/* ── ROW 3: SERVICE | ORDER ID ── */}
+                            {/* ── ROW 3: SERVICE | PRICE ── */}
                             <div className="grid grid-cols-2 gap-5 mb-6 relative z-10">
                                 <div>
                                     <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Service</p>
                                     <p className="text-white font-bold text-sm">{item.service || 'Virtual Number'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Order ID</p>
-                                    <p className="text-gray-300 font-mono text-sm">#{item.orderId.replace('ORD-', '')}</p>
+                                    <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 font-bold mb-1.5">Price</p>
+                                    <p className="text-gray-300 font-mono text-sm">Rs{item.price}</p>
                                 </div>
                             </div>
 
@@ -776,7 +801,7 @@ const MyActiveNumbers = () => {
                             <div className="relative z-10 mt-auto">
                                 <p className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-bold mb-2">OTP Code</p>
                                 <AnimatePresence mode="wait">
-                                    {item.otp ? (
+                                    {item.otp?.code ? (
                                         <motion.div
                                             key="otp-received"
                                             initial={{ opacity: 0, scale: 0.96 }}
@@ -785,10 +810,10 @@ const MyActiveNumbers = () => {
                                             className="flex items-center justify-between bg-[#2a0a14] border border-[#ff4da6]/25 rounded-xl px-4 py-3.5"
                                         >
                                             <span className="text-[1.5rem] font-mono font-bold text-white tracking-[0.4em]">
-                                                {item.otp.split('').join(' ')}
+                                                {item.otp.code.split('').join(' ')}
                                             </span>
                                             <button
-                                                onClick={() => handleCopyOtp(item._id, item.otp)}
+                                                onClick={() => handleCopyOtp(item._id, item.otp.code)}
                                                 className="ml-3 p-2 text-[#ff4da6]/70 hover:text-[#ff4da6] hover:bg-[#ff4da6]/10 rounded-lg transition-all shrink-0"
                                             >
                                                 {copiedOtp === item._id
@@ -819,6 +844,7 @@ const MyActiveNumbers = () => {
 };
 
 // 9. Add Funds Page
+
 const AddFunds = ({ walletBalance, setWalletBalance, setTransactions }) => {
     const [method, setMethod] = useState('');
     const [transactionId, setTransactionId] = useState('');
@@ -1097,6 +1123,37 @@ export default function App() {
             }
         };
         fetchData();
+    }, []);
+
+    // Socket: Join room and listen for wallet updates
+    useEffect(() => {
+        const userData = localStorage.getItem("userData");
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.id) {
+                socket.emit("join", user.id);
+                console.log("Socket: Joined room", user.id);
+            }
+        }
+
+        socket.on("walletUpdated", (data) => {
+            setWalletBalance(data.balance);
+            Swal.fire({
+                title: 'Wallet Updated!',
+                text: `Your new balance is Rs ${data.balance}`,
+                icon: 'success',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                background: '#111',
+                color: '#fff'
+            });
+        });
+
+        return () => {
+            socket.off("walletUpdated");
+        };
     }, []);
 
     const handleBuy = async (numberId) => {

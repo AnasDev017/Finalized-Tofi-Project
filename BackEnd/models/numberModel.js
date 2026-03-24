@@ -26,6 +26,17 @@ const NumberSchema = new mongoose.Schema({
     type: String
   },
 
+  otp: {
+    code: { type: String, default: null },
+    receivedAt: { type: Date, default: null }
+  },
+
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
