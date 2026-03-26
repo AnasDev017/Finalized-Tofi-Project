@@ -26,6 +26,10 @@ const NumberSchema = new mongoose.Schema({
     type: String
   },
 
+  description: {
+    type: String
+  },
+
   otp: {
     code: { type: String, default: null },
     receivedAt: { type: Date, default: null }

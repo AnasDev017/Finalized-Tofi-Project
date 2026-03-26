@@ -4,7 +4,7 @@ import Country from "../models/countryModel.js";
 // Add a new virtual number
 export const addNumber = async (req, res) => {
   try {
-    const { number, countryName, price, service } = req.body;
+    const { number, countryName, price, service, description } = req.body;
 
     if (!number || !countryName || !price) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -21,6 +21,7 @@ export const addNumber = async (req, res) => {
       country: findCountry._id,
       price,
       service,
+      description,
       status: "available"
     });
 

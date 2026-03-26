@@ -60,7 +60,7 @@ const PageWrapper = ({ children, title, description }) => (
 // --- Sub-components (Views) ---
 
 const ProductsView = ({ numbers, setNumbers, countries }) => {
-    const [formData, setFormData] = useState({ number: '', country: '', price: '' });
+    const [formData, setFormData] = useState({ number: '', country: '', price: '', description: '' });
     const [loading, setLoading] = useState(false);
 
     const handleAdd = async (e) => {
@@ -83,6 +83,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                 number: formData.number.trim(),
                 countryName: formData.country,
                 price: parseFloat(formData.price),
+                description: formData.description.trim(),
                 status: 'available'
             });
 
@@ -96,7 +97,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                 };
 
                 setNumbers([numberToStore, ...numbers]);
-                setFormData({ number: '', country: '', price: '' });
+                setFormData({ number: '', country: '', price: '', description: '' });
                 Swal.fire({
                     title: 'Number Added!',
                     text: 'Virtual number is now available.',
@@ -193,6 +194,10 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Price (Rs)</label>
                                 <input type="number" step="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} placeholder="3.00" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
                             </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Description</label>
+                                <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="e.g. Premium US Number for WhatsApp" className="w-full bg-[#161616] border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all resize-none h-20" />
+                            </div>
                             <button
                                 type="submit"
                                 disabled={loading}
@@ -213,6 +218,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Number</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Country</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Price</th>
+                                    <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Description</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
                                     <th className="p-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
@@ -228,6 +234,7 @@ const ProductsView = ({ numbers, setNumbers, countries }) => {
                                             </div>
                                         </td>
                                         <td className="p-5 text-sm text-gray-300">Rs{num.price?.toFixed(2)}</td>
+                                        <td className="p-5 text-sm text-gray-400 italic max-w-[150px] truncate">{num.description || '—'}</td>
                                         <td className="p-5">
                                             <span className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full ${num.status === 'available' || num.status === 'Available' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
                                                 {num.status}
@@ -949,7 +956,7 @@ export default function Admin() {
         { id: 'countries', label: 'Countries', icon: Globe },
         { id: 'orders', label: 'Orders', icon: ShoppingBag },
         { id: 'payments', label: 'Payments', icon: CreditCard },
-        { id: 'tickets', label: 'Tickets', icon: Ticket },
+        // { id: 'tickets', label: 'Tickets', icon: Ticket },
         { id: 'otps', label: 'Manage OTPs', icon: KeyRound },
     ];
 
