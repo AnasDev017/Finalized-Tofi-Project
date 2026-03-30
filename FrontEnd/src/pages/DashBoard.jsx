@@ -5,7 +5,7 @@ import {
     Search, Filter, ChevronRight, Menu, X, CheckCircle,
     Clock, XCircle, Upload, Copy, ShieldCheck, CreditCard,
     LogOut, Edit3, ArrowLeft, Check, Smartphone, Zap, Loader2,
-    Wallet, History, PlusCircle
+    Wallet, History, PlusCircle, MessageCircle
 } from 'lucide-react';
 import axios from 'axios';
 import API_BASE_URL from '../api/baseUrl';
@@ -454,63 +454,98 @@ const Orders = () => {
 
 // 4. Support Page
 const Support = () => {
+    const handleWhatsAppRedirect = () => {
+        window.open("https://wa.me/923098633728", "_blank");
+    };
+
     return (
         <PageWrapper>
-            <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Customer Support</h1>
-                <p className="text-gray-400">Our support team is available 24/7 to help with any issues.</p>
+            <div className="mb-10 text-center lg:text-left">
+                <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-3 tracking-tight">Need Help?</h1>
+                <p className="text-gray-400 max-w-2xl text-lg">Our experts are ready to assist you. Connect through our official support channels for instant resolution.</p>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-[#111] border border-white/10 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#ff4da6]/5 to-[#9d4edd]/5 rounded-full blur-3xl pointer-events-none" />
-                    <h2 className="text-2xl font-bold text-white mb-6 relative z-10">Send us a message</h2>
-                    <form className="space-y-5 relative z-10" onSubmit={(e) => e.preventDefault()}>
-                        <div className="grid md:grid-cols-2 gap-5">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Your Name</label>
-                                <input type="text" placeholder="John Doe" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-                                <input type="email" placeholder="john@example.com" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all" />
-                            </div>
+            <div className="grid lg:grid-cols-12 gap-8">
+                {/* Primary WhatsApp Card */}
+                <div className="lg:col-span-7 bg-[#111] border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-[#25D366]/10 to-[#128C7E]/5 rounded-full blur-[100px] pointer-events-none group-hover:from-[#25D366]/20 transition-all duration-700" />
+
+                    <div className="relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-[#25D366]/10 flex items-center justify-center mb-8 border border-[#25D366]/20 shadow-[0_0_30px_rgba(37,211,102,0.1)] group-hover:scale-110 transition-transform duration-500">
+                            <MessageCircle className="text-[#25D366] w-9 h-9" />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Message</label>
-                            <textarea rows={5} placeholder="How can we help you today?" className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#ff4da6]/50 transition-all resize-none"></textarea>
+
+                        <div className="mb-8">
+                            <span className="inline-block px-4 py-1.5 rounded-full bg-[#25D366]/10 text-[#25D366] text-xs font-black uppercase tracking-[0.2em] mb-4 border border-[#25D366]/20">Official Support</span>
+                            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 leading-tight">12/7 WhatsApp <br /><span className="bg-clip-text text-transparent bg-gradient-to-r from-[#25D366] to-[#128C7E]">Live Support</span></h2>
+                            <p className="text-gray-400 text-lg leading-relaxed max-w-md">Get help with orders, deposits, or any technical issues directly from our team on WhatsApp.</p>
                         </div>
-                        <button className="px-8 py-4 rounded-xl bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] text-white font-bold hover:shadow-[0_0_20px_rgba(255,77,166,0.3)] transform hover:-translate-y-0.5 transition-all">
-                            Send Message
+
+                        <ul className="space-y-4 mb-10">
+                            {[
+                                { text: "Average response time: < 15 mins", icon: Clock },
+                                { text: "Order status & updates", icon: ShoppingBag },
+                                { text: "Deposit & Payment verification", icon: CreditCard }
+                            ].map((item, idx) => (
+                                <li key={idx} className="flex items-center gap-3 text-gray-300">
+                                    <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+                                        <item.icon className="w-3.5 h-3.5 text-[#25D366]" />
+                                    </div>
+                                    <span className="text-sm font-medium">{item.text}</span>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <button
+                            onClick={handleWhatsAppRedirect}
+                            className="group/btn relative inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#25D366] text-white font-bold text-lg hover:bg-[#1ebd5e] transition-all shadow-[0_10px_30px_rgba(37,211,102,0.3)] hover:shadow-[0_15px_40px_rgba(37,211,102,0.4)] transform hover:-translate-y-1 active:scale-95"
+                        >
+                            Connect via WhatsApp
+                            <ChevronRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                         </button>
-                    </form>
+                    </div>
+
+                    {/* Decorative element */}
+                    <div className="absolute -bottom-10 -right-10 opacity-5 group-hover:opacity-10 transition-opacity duration-700">
+                        <MessageCircle className="w-64 h-64 text-white" />
+                    </div>
                 </div>
 
-                <div className="space-y-6">
-                    <motion.div whileHover={{ y: -5 }} className="bg-[#111] border border-white/10 hover:border-[#ff4da6]/30 rounded-3xl p-6 shadow-lg group relative overflow-hidden">
+                {/* Secondary Cards */}
+                <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
+                    <motion.div
+                        whileHover={{ y: -5 }}
+                        className="bg-[#111] border border-white/10 hover:border-[#ff4da6]/30 rounded-[2rem] p-8 shadow-lg group relative overflow-hidden flex-1"
+                    >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#ff4da6]/5 rounded-full blur-2xl group-hover:bg-[#ff4da6]/10 transition-colors pointer-events-none" />
-                        <div className="w-12 h-12 rounded-full bg-[#ff4da6]/10 flex items-center justify-center mb-4 border border-[#ff4da6]/20">
-                            <LifeBuoy className="text-[#ff4da6] w-6 h-6" />
+                        <div className="w-14 h-14 rounded-2xl bg-[#ff4da6]/10 flex items-center justify-center mb-6 border border-[#ff4da6]/20">
+                            <ShieldCheck className="text-[#ff4da6] w-7 h-7" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">Live Chat Support</h3>
-                        <p className="text-sm text-gray-400 mb-4">Get instant help from our support agents.</p>
-                        <button className="text-[#ff4da6] text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all">
-                            Start Chat <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <h3 className="text-xl font-bold text-white mb-3">Safe & Secure</h3>
+                        <p className="text-gray-400 leading-relaxed mb-6">Our support is fully encrypted and safe. Your privacy is our top priority.</p>
+                        <div className="h-1 w-12 bg-gradient-to-r from-[#ff4da6] to-[#9d4edd] rounded-full" />
                     </motion.div>
 
-                    <motion.div whileHover={{ y: -5 }} className="bg-[#111] border border-white/10 hover:border-[#9d4edd]/30 rounded-3xl p-6 shadow-lg group relative overflow-hidden">
+                    <motion.div
+                        whileHover={{ y: -5 }}
+                        className="bg-[#111] border border-white/10 hover:border-[#9d4edd]/30 rounded-[2rem] p-8 shadow-lg group relative overflow-hidden flex-1"
+                    >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#9d4edd]/5 rounded-full blur-2xl group-hover:bg-[#9d4edd]/10 transition-colors pointer-events-none" />
-                        <div className="w-12 h-12 rounded-full bg-[#9d4edd]/10 flex items-center justify-center mb-4 border border-[#9d4edd]/20">
-                            <ShieldCheck className="text-[#9d4edd] w-6 h-6" />
+                        <div className="w-14 h-14 rounded-2xl bg-[#9d4edd]/10 flex items-center justify-center mb-6 border border-[#9d4edd]/20">
+                            <Zap className="text-[#9d4edd] w-7 h-7" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">Help Center</h3>
-                        <p className="text-sm text-gray-400 mb-4">Browse FAQs and detailed guides.</p>
-                        <button className="text-[#9d4edd] text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all">
-                            Visit Help Center <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <h3 className="text-xl font-bold text-white mb-3">Fast Activation</h3>
+                        <p className="text-gray-400 leading-relaxed mb-6">Need a custom number? Contact support for lightning-fast manual activations.</p>
+                        <div className="h-1 w-12 bg-gradient-to-r from-[#9d4edd] to-[#7b2cbf] rounded-full" />
                     </motion.div>
                 </div>
+            </div>
+
+            {/* FAQ Hint */}
+            <div className="mt-12 p-6 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                <p className="text-sm text-gray-500 font-medium">
+                    Please provide your <span className="text-white font-bold">Registration Email</span> or <span className="text-white font-bold">Order ID</span> when contacting support for faster help.
+                </p>
             </div>
         </PageWrapper>
     );
@@ -1259,7 +1294,7 @@ export default function App() {
         { id: 'history', label: 'Payment History', icon: History },
         { id: 'active', label: 'My Numbers', icon: Smartphone },
         { id: 'support', label: 'Support', icon: LifeBuoy },
-        { id: 'account', label: 'Account', icon: UserIcon },
+        // { id: 'account', label: 'Account', icon: UserIcon },
     ];
 
     if (!isReady) return <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center text-[#ff4da6]">Welcome to Tofi Studio</div>;
@@ -1276,9 +1311,7 @@ export default function App() {
             {/* --- Sidebar (Desktop) --- */}
             <aside className="hidden lg:flex flex-col w-[260px] h-screen bg-black/40 backdrop-blur-2xl border-r border-white/5 relative z-20 shrink-0">
                 <div className="p-8 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center shadow-[0_0_15px_rgba(255,77,166,0.3)]">
-                        <span className="text-white font-bold text-lg leading-none">T</span>
-                    </div>
+                    <img src="/webLogo.png" alt="Logo" className="w-10 h-10 object-contain" />
                     <span className="text-xl font-bold tracking-tight">Tofi Studio</span>
                 </div>
 
@@ -1323,9 +1356,7 @@ export default function App() {
                 {/* Mobile Header */}
                 <header className="lg:hidden flex items-center justify-between p-4 bg-black/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center">
-                            <span className="text-white font-bold">T</span>
-                        </div>
+                        <img src="/webLogo.png" alt="Logo" className="w-9 h-9 object-contain" />
                         <span className="text-lg font-bold">Tofi Studio</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1371,9 +1402,7 @@ export default function App() {
                             >
                                 <div className="p-6 flex items-center justify-between border-b border-white/5">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center">
-                                            <span className="text-white font-bold">T</span>
-                                        </div>
+                                        <img src="/webLogo.png" alt="Logo" className="w-9 h-9 object-contain" />
                                         <span className="text-xl font-bold">Tofi Studio</span>
                                     </div>
                                     <button onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6 text-gray-400" /></button>

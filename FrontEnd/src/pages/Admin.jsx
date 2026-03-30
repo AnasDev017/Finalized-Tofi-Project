@@ -1031,7 +1031,7 @@ export default function Admin() {
             {/* Sidebar - Desktop */}
             <aside className="hidden lg:flex flex-col w-[260px] bg-[#080808] border-r border-white/5 flex-shrink-0 z-10">
                 <div className="p-8 font-bold text-xl flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center shadow-lg shadow-[#ff4da6]/20">T</div>
+                    <img src="/webLogo.png" alt="Logo" className="w-10 h-10 object-contain" />
                     <span className="tracking-tight">Tofi Admin</span>
                 </div>
 
@@ -1069,7 +1069,7 @@ export default function Admin() {
                 {/* Mobile Header */}
                 <header className="lg:hidden p-4 bg-black/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center sticky top-0 z-[100]">
                     <div className="font-bold text-lg flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center text-sm">T</div>
+                        <img src="/webLogo.png" alt="Logo" className="w-9 h-9 object-contain" />
                         Tofi Admin
                     </div>
                     <button onClick={() => setMobileMenuOpen(true)} className="p-2 hover:bg-white/5 rounded-lg"><Menu /></button>
@@ -1104,7 +1104,7 @@ export default function Admin() {
                         >
                             <div className="flex justify-between items-center mb-8">
                                 <div className="flex items-center gap-3 font-bold text-xl">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff4da6] to-[#9d4edd] flex items-center justify-center text-sm">T</div>
+                                    <img src="/webLogo.png" alt="Logo" className="w-9 h-9 object-contain" />
                                     Admin
                                 </div>
                                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
