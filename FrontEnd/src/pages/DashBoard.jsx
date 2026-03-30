@@ -872,7 +872,7 @@ const AddFunds = ({ walletBalance, setWalletBalance, setTransactions, navigate }
     useEffect(() => {
         Swal.fire({
             title: "Payment Info",
-            text: "If your payment is not added within 20 minutes, please contact support via WhatsApp at 780789279.",
+            text: "If your payment is not added within 20 minutes, please contact support via WhatsApp at 03098633728.",
             icon: "info",
             background: "#111",
             color: "#fff",
@@ -881,10 +881,10 @@ const AddFunds = ({ walletBalance, setWalletBalance, setTransactions, navigate }
     }, []);
 
     const paymentMethods = [
-        { id: 'easypaisa', name: 'Easypaisa', account: '0300 1234567', title: 'Tofi Studio', icon: 'https://icon2.cleanpng.com/lnd/20250110/er/acded9d6362d497965c18a071cb9fd.webp' },
-        { id: 'jazzcash', name: 'JazzCash', account: '0301 7654321', title: 'Tofi Studio Pvt', icon: 'https://play-lh.googleusercontent.com/uG93WUUyYVhe-B-5hBqKhr1X--UvgiICOFgD9rK4dbYG3TdqXKjq_TsJU7Pg034dOA=w240-h480-rw' },
-        { id: 'nayapay', name: 'NayaPay', account: '0310 9876543', title: 'Alex Mercer', icon: 'https://play-lh.googleusercontent.com/OaLId--7-ubuipOHiNGR4N-EpFVg9wIGYIw6trOt5tOFKcjvcxdpsuEDfYcWLWJTUx4' },
-        { id: 'crypto', name: 'Crypto (USDT)', account: '0x1234...abcd', title: 'ERC20 / TRC20', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2cQbJSNv4fI-SWqstYLsPgh8LrkNycKw6xA&s' },
+        { id: 'easypaisa', name: 'Easypaisa', account: '03490676396', title: 'Muhammad Tofique', icon: 'https://img.favpng.com/24/17/11/easypaisa-logo-easypaisa-logo-in-green-and-black-EjCnPTZb_t.jpg' },
+        { id: 'sadapay', name: 'SadaPay', account: '03490676396', title: 'Muhammad Tofique', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3gLIJSvujgwhfXSXb_EngO8YBCoJOLNXWeA&s' },
+        { id: 'Banance ID', name: 'Banance ID', account: '438821899', title: 'Tofi King', icon: 'https://static.vecteezy.com/system/resources/previews/054/061/035/non_2x/binance-logo-free-download-free-vector.jpg' },
+        { id: 'crypto', name: 'Crypto (USDT)', account: '0x7d2d01158b1e4ebca262b9029fac6846c9b687a6', title: 'BSC', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvCqkMc3o2EYafH4Hheu2ECKVYBBu24H-GeA&s' },
     ];
 
     const handleCopy = (text, id) => {
